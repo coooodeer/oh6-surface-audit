@@ -1,0 +1,123 @@
+{
+  "summaryVersion": "1",
+  "generatedAt": "2026-10-21T17:53:45.400Z",
+  "generator": "tools/autonomy-pilot-summary.js",
+  "note": "所有数字都可由 run 目录逐条复算；不重新裁决，不引入新结论。",
+  "labels": "pending（eval/autonomy/labels.json 只有 schema 与 status=pending，未做人工标注）",
+  "run": {
+    "runId": "RUN:9b1bdf44daebe542",
+    "runDir": "out/autonomy/RUN-9b1bdf44daebe542",
+    "scopeId": "sandbox_manager-pilot",
+    "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+    "inputManifestId": "AM-656ccac4f4c791d1",
+    "mode": "off",
+    "budget": {
+      "maxModelRequests": 30,
+      "maxToolCalls": 400,
+      "maxInputTokens": 300000,
+      "maxOutputTokens": 60000,
+      "maxWallSeconds": 1800,
+      "maxTasks": 100,
+      "maxTaskModelRequests": 6,
+      "maxTaskToolCalls": 20,
+      "maxConcurrentTools": 4,
+      "maxConcurrentModels": 1
+    },
+    "counts": {
+      "tasks": 24,
+      "tasksByOrigin": {
+        "coverage-sample": 5,
+        "entry-scan": 19
+      },
+      "questions": 72,
+      "questionsByKind": {
+        "binding": 24,
+        "check-presence": 24,
+        "dominance": 24
+      },
+      "questionStatus": {
+        "insufficient": 29,
+        "refuted": 7,
+        "supported": 36
+      },
+      "questionStatusByKind": {
+        "check-presence": {
+          "supported": 14,
+          "refuted": 7,
+          "insufficient": 3
+        },
+        "binding": {
+          "supported": 22,
+          "insufficient": 2
+        },
+        "dominance": {
+          "insufficient": 24
+        }
+      },
+      "missing": 27,
+      "missingByReason": {
+        "binding-metadata-only": 2,
+        "check-call-weak-only": 1,
+        "dominance-unproven": 24
+      },
+      "missingByCategory": {
+        "data": 2,
+        "precision": 25
+      },
+      "assessments": 72,
+      "assessmentsByDecision": {
+        "insufficient": 29,
+        "refuted": 7,
+        "supported": 36
+      },
+      "toolResults": 92,
+      "toolResultsByTool": {
+        "getEvidence": 22,
+        "inspectAuthorization": 24,
+        "inspectEntry": 24,
+        "inspectRelation": 22
+      },
+      "toolResultsByStatus": {
+        "ok": 92
+      },
+      "contexts": 24,
+      "modelCalls": 0,
+      "modelCallsByStatus": {}
+    },
+    "reportability": {
+      "tasks": 24,
+      "candidate": 7,
+      "observation": 17,
+      "excluded": 0,
+      "finding": 0
+    },
+    "reportMissingByReason": {
+      "binding-metadata-only": 2,
+      "check-call-weak-only": 1,
+      "dominance-unproven": 24
+    },
+    "semanticHash": "sha256:6b9b126fcda86ff73f5690d7ee5d0c162fb9cc84d7a0dc4242756974a9410ef2",
+    "toolUsage": {
+      "ledgerRows": 92,
+      "wallMsTotal": 17,
+      "bytesReadTotal": 9598
+    },
+    "modelUsage": {
+      "ledgerRows": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "wallMsTotal": 0
+    },
+    "wallMs": 201,
+    "toolCalls": 92,
+    "stoppedReason": null,
+    "events": 75
+  },
+  "replay": {
+    "runId": "RUN:ed75ea5cb9a0176e",
+    "semanticHash": "sha256:6b9b126fcda86ff73f5690d7ee5d0c162fb9cc84d7a0dc4242756974a9410ef2",
+    "sameSemanticHash": true,
+    "sameReportability": true,
+    "sameCounts": true
+  }
+}

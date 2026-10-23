@@ -1,0 +1,20 @@
+{
+  "planId": "PLAN:6a04054a8088e649",
+  "taskId": "TASK:3b68cce18f3944e5",
+  "questionIds": ["Q:b082ebdcbfd2eaaf"],
+  "hypothesis": "Malformed policy vector data is rejected before policy mutation.",
+  "runnerId": "host-isolated",
+  "targetEnvironment": "Windows native isolated host harness, not provisioned",
+  "buildVariantId": null,
+  "sourceRefs": ["F:2142c229d142:call:129bd238a312aace", "F:2142c229d142:function:dbea6ca804a03471"],
+  "harnessRef": null,
+  "inputRefs": [],
+  "controls": ["valid policy vector", "malformed vector", "empty vector"],
+  "expectedSignals": ["parser rejects malformed input", "no policy mutation"],
+  "successCriteria": { "noSignal": "blocked", "observation": "Three repeats and a negative control are required before interpreting any signal." },
+  "resourceLimits": { "timeoutMs": 10000, "memoryMiB": 256, "maxProcesses": 1, "network": false },
+  "requiredCapabilities": ["isolated-host", "read-only-source", "no-network"],
+  "approvalRef": null,
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "limitations": "A host parser test would be function-only and cannot prove IPC reachability or device authorization."
+}

@@ -1,0 +1,15 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "codex-builder-2026-10-23",
+  "reviewedAt": "2026-10-23T00:00:00Z",
+  "decision": "accepted",
+  "normId": "NORM:aa1295d063607f4d",
+  "proposalVersion": "sha256:7b3da1d13142fa1ff4a34bba99d6cf5a463d798fd885b3cce52bb825f50615ff",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "appliesTo": ["UnSetPolicy", "UnSetPolicyAsync"],
+  "applicabilityRationale": "IDL declares UnSetPolicy and UnSetPolicyAsync; the service async implementation directly delegates the same arguments to UnSetPolicy. README says all interfaces other than SetPolicy and CheckPersistPolicy require FILE_ACCESS_PERSIST.",
+  "rationale": "The README general rule includes UnSetPolicy, but its use table omits that method; this approval is a Builder-LLM interpretation of the documented contract, not independent human or device evidence. Check caller and permission behavior separately before a finding."
+}

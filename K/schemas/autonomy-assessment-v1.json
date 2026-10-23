@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "autonomy assessment record",
+  "description": "AUTONOMY-MVP-GOAL-GUIDE §5.1 记录封套 + §5.6 Assessment。recordId 恒等于 payload.assessmentId。",
+  "type": "object",
+  "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "recordId": { "type": "string", "pattern": "^ASSESS:[0-9a-f]{16}$" },
+    "recordType": { "type": "string", "const": "assessment" },
+    "schemaVersion": { "type": "string", "const": "1" },
+    "manifestId": { "type": "string", "pattern": "^AM-[0-9a-f]{16}$" },
+    "createdAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" },
+    "producer": {
+      "type": "object",
+      "required": ["kind", "name", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["analyzer", "model", "host"] },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "dependencyRefs": { "type": "array", "items": { "type": "string" } },
+    "payload": {
+      "type": "object",
+      "required": [
+        "assessmentId", "taskId", "questionId", "proposition", "scope", "decision",
+        "basis", "assurance", "evidenceRefs", "counterEvidenceRefs", "assumptions",
+        "missingRefs", "contextId", "modelCallRef", "rationale"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "assessmentId": { "type": "string", "pattern": "^ASSESS:[0-9a-f]{16}$" },
+        "taskId": { "type": "string", "pattern": "^TASK:[0-9a-f]{16}$" },
+        "questionId": { "type": "string", "pattern": "^Q:[0-9a-f]{16}$" },
+        "proposition": { "type": "string", "minLength": 4 },
+        "scope": {
+          "type": "object",
+          "required": ["entryRefs", "snapshotId"],
+          "additionalProperties": false,
+          "properties": {
+            "entryRefs": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+          }
+        },
+        "decision": { "type": "string", "enum": ["supported", "refuted", "insufficient", "conflict"] },
+        "basis": { "type": "string", "enum": ["observed", "derived", "llm", "mixed"] },
+        "assurance": { "type": "string", "enum": ["observation", "bounded-analysis", "model-assessment"] },
+        "evidenceRefs": { "type": "array", "items": { "type": "string", "pattern": "^EVID:[0-9a-f]{16}$" } },
+        "counterEvidenceRefs": { "type": "array", "items": { "type": "string" } },
+        "assumptions": { "type": "array", "items": { "type": "string" } },
+        "missingRefs": { "type": "array", "items": { "type": "string", "pattern": "^MISS:[0-9a-f]{16}$" } },
+        "contextId": { "type": ["string", "null"] },
+        "modelCallRef": { "type": ["string", "null"] },
+        "rationale": { "type": "string", "maxLength": 400 }
+      }
+    }
+  }
+}

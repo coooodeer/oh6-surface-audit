@@ -1,0 +1,102 @@
+[
+  {
+    "id": 0,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/dfx/data_dfx/data_size_report_adapter.cpp",
+    "code": 0,
+    "ms": 16917,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 560707658
+  },
+  {
+    "id": 1,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/services/accountmgr/test/unittest/os_account/os_account_service_test.cpp",
+    "code": 1,
+    "ms": 89786,
+    "category": "missing-generated-header",
+    "firstError": "'idomain_account_callback.h' file not found",
+    "astBytes": 928873878
+  },
+  {
+    "id": 2,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/adapter/common/bus_center/boot_event/lnn_boot_event_monitor.cpp",
+    "code": 0,
+    "ms": 41279,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 39547148
+  },
+  {
+    "id": 3,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/authentication/fuzztest/authidentityserviceadapter_fuzzer/authidentityserviceadapter_fuzzer.cpp",
+    "code": 0,
+    "ms": 29845,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 376322520
+  },
+  {
+    "id": 4,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/dbinder/dbinder_service/src/dbinder_death_recipient.cpp",
+    "code": 0,
+    "ms": 10639,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 560831996
+  },
+  {
+    "id": 5,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/test/unittest/common/ipc_connector_unittest.cpp",
+    "code": 0,
+    "ms": 13570,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 701696352
+  },
+  {
+    "id": 6,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/cj/src/emitter.cpp",
+    "code": 0,
+    "ms": 5290,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 525619279
+  },
+  {
+    "id": 7,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/eventhandler/test/unittest/lib_event_handler_test.cpp",
+    "code": 0,
+    "ms": 8706,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 845634377
+  },
+  {
+    "id": 8,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/frameworks/inner_api/sandbox_manager/src/sandbox_manager_client.cpp",
+    "code": 1,
+    "ms": 10748,
+    "category": "missing-generated-header",
+    "firstError": "'isandbox_manager.h' file not found",
+    "astBytes": 352989225
+  },
+  {
+    "id": 9,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/innerkits/sandbox_manager/cleanpersistpolicybypath_fuzzer/cleanpersistpolicybypath_fuzzer.cpp",
+    "code": 0,
+    "ms": 5402,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 401611468
+  }
+]

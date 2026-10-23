@@ -1,0 +1,20 @@
+{
+  "planId": "PLAN:b1753db52e17ebc1",
+  "taskId": "TASK:ce534608cd00a85c",
+  "questionIds": ["Q:b1753db52e17ebc1"],
+  "hypothesis": "The caller is authorized before the delegated UnSetPolicy operation mutates policy state.",
+  "runnerId": "host-isolated",
+  "targetEnvironment": "Windows native isolated host harness, not provisioned",
+  "buildVariantId": null,
+  "sourceRefs": ["F:2142c229d142:call:5d33f039e5377613", "F:2142c229d142:call:e2092870a5372786"],
+  "harnessRef": null,
+  "inputRefs": [],
+  "controls": ["authorized caller", "unauthorized caller", "different target token"],
+  "expectedSignals": ["unauthorized mutation rejected", "authorized mutation reaches the intended object"],
+  "successCriteria": { "noSignal": "blocked", "observation": "Three repeats and an unauthorized negative control are required." },
+  "resourceLimits": { "timeoutMs": 10000, "memoryMiB": 256, "maxProcesses": 1, "network": false },
+  "requiredCapabilities": ["isolated-host", "read-only-source", "no-network"],
+  "approvalRef": null,
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "limitations": "There is no approved isolated runner or entry-faithful IPC harness; a function-only host result could not prove device authorization."
+}

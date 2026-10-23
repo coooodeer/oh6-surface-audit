@@ -1,0 +1,70 @@
+{
+  "policyId": "autonomy-pilot-scope",
+  "version": "1.0.0",
+  "description": "自主审计 MVP 的试点范围：只做 base/accesscontrol/sandbox_manager 单组件；不扩仓。",
+  "scopeId": "sandbox_manager-pilot",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "roots": [
+    { "root": "base/accesscontrol/sandbox_manager", "part": "accesscontrol" }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl 的 interface × method" },
+    { "kind": "sa", "enabled": true, "note": "metadata/sa.jsonl 的 saId（info 级：无方法签名）" },
+    { "kind": "napi", "enabled": true, "note": "metadata/napi.jsonl 的 module" },
+    { "kind": "on-remote-request", "enabled": true, "note": "functions.jsonl 中名字含 OnRemoteRequest 的函数" }
+  ],
+  "modelMetadata": {
+    "interface": "OHOS.AccessControl.SandboxManager.ISandboxManager",
+    "implOwnerSuffix": "SandboxManagerService",
+    "note": "IDL 方法 → 实现按 owner 段名 + 方法名匹配（MVP 只做名称/owner 匹配，不是 AG1 的完整绑定）"
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "checkVocabulary": {
+    "strong": [
+      "VerifyAccessToken",
+      "CheckSystemApp",
+      "IsSystemApp",
+      "VerifyPermission",
+      "CheckCallingPermission",
+      "IsSystemAppOrNative",
+      "CheckPermission",
+      "IsFileManagerCalling"
+    ],
+    "weak": ["AccessToken", "Permission", "GetCallingTokenID", "GetCallingUid"],
+    "callees": [
+      "VerifyAccessToken",
+      "CheckSystemApp",
+      "IsSystemApp",
+      "VerifyPermission",
+      "CheckCallingPermission",
+      "AccessToken",
+      "Permission",
+      "IsSystemAppOrNative",
+      "CheckPermission",
+      "IsFileManagerCalling",
+      "GetCallingTokenID",
+      "GetCallingUid"
+    ],
+    "guardVariables": ["permission", "tokenId", "callingTokenId", "callingUid", "callingPid"],
+    "note": "strong = 授权判定（命中即算『有校验调用』）；weak = 仅身份获取/宽泛子串（只算弱信号，判 insufficient + missing=check-call-weak-only）。注意：命中只说明有调用，不说明对象一致（Q-dominance 因此恒 insufficient）"
+  },
+  "coverageSample": {
+    "fraction": 0.2,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc",
+    "note": "按实现文件分层抽 20%；每个抽样文件取一个函数实体作锚点（头文件不参与抽样）"
+  },
+  "limits": {
+    "maxIndexFunctions": 5000,
+    "maxIndexCalls": 20000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  }
+}

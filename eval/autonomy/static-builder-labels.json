@@ -1,0 +1,27 @@
+{
+  "labelsVersion": "static-pilot-1",
+  "labelSource": "builder-llm-oracle",
+  "generatedBy": "builder-llm",
+  "modelFamily": "Codex builder session",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "familyId": "sandbox-manager-policy-permission-contract",
+  "scope": "README permission contract mismatch only; no exploitability label",
+  "labels": [
+    {
+      "runId": "RUN:c8f7bcf459912b89",
+      "entryRef": "ENT:2205b0adf9f58c1f",
+      "method": "SetPolicyAsync",
+      "source": "production",
+      "expected": "excluded",
+      "rationale": "README explicitly specifies SET_SANDBOX_POLICY; the async method delegates to SetPolicy, which checks that same constant before the scoped mutation. This excludes only permission-contract mismatch."
+    },
+    {
+      "runId": "RUN:a4112fde24b81541",
+      "entryRef": "ENT:76b8b5f5e35ec658",
+      "method": "UnSetPolicyAsync",
+      "source": "production",
+      "expected": "finding",
+      "rationale": "Builder-approved README catch-all specifies FILE_ACCESS_PERSIST for this IDL method. The precise async delegate checks SET_SANDBOX_POLICY for the calling token and then calls the scoped UnSetPolicy operation. This is a static documentation-contract conflict only."
+    }
+  ]
+}

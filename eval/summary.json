@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-10-17T14:16:59.205Z",
+  "p3": {
+    "cases": 10,
+    "historical": 5
+  },
+  "p6": {
+    "cases": 25,
+    "originals": 10,
+    "controls": 10,
+    "restricted": 5
+  }
+}

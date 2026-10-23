@@ -1,0 +1,15 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "codex-builder-2026-10-23",
+  "reviewedAt": "2026-10-23T00:00:00Z",
+  "decision": "accepted",
+  "normId": "NORM:298088535ea57095",
+  "proposalVersion": "sha256:d75afb38c14221f293d38d3fd164119452842c7719b445883af78b79e6a3abd2",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "appliesTo": ["SetPolicy", "SetPolicyAsync"],
+  "applicabilityRationale": "IDL declares both methods; the service async implementation directly delegates all arguments to SetPolicy, whose README permission is explicit.",
+  "rationale": "README_zh.md explicitly requires SET_SANDBOX_POLICY for SetPolicy; service SetPolicyAsync delegates to SetPolicy. This is a static contract interpretation, not a human approval or runtime witness."
+}

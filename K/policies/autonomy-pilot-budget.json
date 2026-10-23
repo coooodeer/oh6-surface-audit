@@ -1,0 +1,22 @@
+{
+  "policyId": "autonomy-pilot-budget",
+  "version": "1.0.0",
+  "description": "自主审计 MVP 试点预算。run --max-tasks=0 表示不限任务数，真实上限由本文件决定；超限必须落 checkpoint 并写 missing=budget，不得静默截断。",
+  "budget": {
+    "maxModelRequests": 30,
+    "maxToolCalls": 400,
+    "maxInputTokens": 300000,
+    "maxOutputTokens": 60000,
+    "maxWallSeconds": 1800,
+    "maxTasks": 100,
+    "maxTaskModelRequests": 6,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  },
+  "notes": [
+    "off 模式必须 0 次模型调用；live 才消耗 maxModelRequests。",
+    "maxToolCalls=400 覆盖 sandbox_manager 全量入口任务（17 IDL + 1 SA + 20% 文件抽样）× 每任务 ≤6 次工具调用。",
+    "maxTaskToolCalls=20 是单任务上限，触发即 missing=budget/blocking=false，任务仍要落 done。"
+  ]
+}

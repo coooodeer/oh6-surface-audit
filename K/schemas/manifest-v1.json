@@ -1,0 +1,19 @@
+{
+  "$id": "manifest-v1",
+  "version": 1,
+  "description": "ArtifactManifest（AG-EXECUTION/README §2）。所有阶段产物必须带 manifest 或可回查 manifestId。",
+  "required": ["manifestId", "snapshotId", "factSchemaVersion", "rulesVersion", "createdAt", "producer", "artifactRefs"],
+  "properties": {
+    "manifestId": { "type": "string", "pattern": "^AM-[0-9a-f]{16}$" },
+    "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "factSchemaVersion": { "enum": ["1"] },
+    "rulesVersion": { "type": "string", "pattern": "^K-\\d+\\.\\d+\\.\\d+$" },
+    "obligationVersion": { "type": ["string", "null"] },
+    "l6IndexVersion": { "type": ["string", "null"] },
+    "verificationRunId": { "type": ["string", "null"] },
+    "reportVersion": { "type": ["string", "null"] },
+    "createdAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}" },
+    "producer": { "enum": ["AG0", "AG1", "AG2", "AG3", "AG4", "AG5", "AG6", "AG7"] },
+    "artifactRefs": { "type": "array", "items": { "type": "string" } }
+  }
+}

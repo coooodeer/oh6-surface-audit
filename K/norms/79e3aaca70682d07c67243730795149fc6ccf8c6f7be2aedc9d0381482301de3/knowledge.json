@@ -1,0 +1,50 @@
+{
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "knowledgeVersion": "sha256:79e3aaca70682d07c67243730795149fc6ccf8c6f7be2aedc9d0381482301de3",
+  "norm": {
+    "normId": "NORM:aa1295d063607f4d",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "base/accesscontrol/sandbox_manager/README_zh.md",
+      "line": 23,
+      "sha256": "b19edec78838e3a48ddea5e90ad11118ba2145a2c62fa50a454d29d769a5cb97",
+      "text": "2. 除SetPolicy、CheckPersistPolicy接口外，其余接口调用者需具有ohos.permission.FILE_ACCESS_PERSIST权限，权限定义详见[access_token](https://gitee.com/openharmony/security_access_token)仓"
+    },
+    "permission": "ohos.permission.FILE_ACCESS_PERSIST",
+    "header": {
+      "file": "base/accesscontrol/sandbox_manager/services/sandbox_manager/main/cpp/include/service/sandbox_manager_const.h",
+      "sha256": "173bad38826e9384d9a2369a6f38ba4a341d5d2a347fdbd9f2b1d18feeb00cd3",
+      "factRef": "F:2142c229d142:file:88ac8ad7615f873d"
+    },
+    "appliesTo": [
+      "UnSetPolicy",
+      "UnSetPolicyAsync"
+    ],
+    "limitation": "The README describes other interfaces generally; async delegation and exceptions require independent review.",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:a7c85e8939a7760a"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "codex-builder-2026-10-23",
+    "reviewedAt": "2026-10-23T00:00:00Z",
+    "decision": "accepted",
+    "normId": "NORM:aa1295d063607f4d",
+    "proposalVersion": "sha256:7b3da1d13142fa1ff4a34bba99d6cf5a463d798fd885b3cce52bb825f50615ff",
+    "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+    "appliesTo": [
+      "UnSetPolicy",
+      "UnSetPolicyAsync"
+    ],
+    "applicabilityRationale": "IDL declares UnSetPolicy and UnSetPolicyAsync; the service async implementation directly delegates the same arguments to UnSetPolicy. README says all interfaces other than SetPolicy and CheckPersistPolicy require FILE_ACCESS_PERSIST.",
+    "rationale": "The README general rule includes UnSetPolicy, but its use table omits that method; this approval is a Builder-LLM interpretation of the documented contract, not independent human or device evidence. Check caller and permission behavior separately before a finding.",
+    "reviewRef": "REVIEW:a7c85e8939a7760a",
+    "sha256": "a7c85e8939a7760accc8b1fe51c90c9df2129a4bc4cdd3584518f2015649d388"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "autonomy event record",
+  "description": "AUTONOMY-MVP-GOAL-GUIDE §6/P3：events.jsonl 的 append-only 事件。seq 从 1 开始连续。",
+  "type": "object",
+  "required": ["seq", "actionId", "runId", "taskId", "kind", "from", "to", "at", "detail"],
+  "additionalProperties": false,
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1 },
+    "actionId": { "type": "string", "pattern": "^ACT:[0-9a-f]{16}$" },
+    "runId": { "type": "string", "pattern": "^RUN:[0-9a-f]{16}$" },
+    "taskId": { "type": ["string", "null"] },
+    "kind": {
+      "type": "string",
+      "enum": ["run-created", "run-resumed", "replay-source", "task-admitted", "task-started", "tool-called", "tool-intent", "tool-completed", "question-updated", "assessment-written", "task-finished", "report-written", "budget-stop", "run-finished", "verify-placeholder", "vertical-action", "view-changed", "branch-rejected"]
+    },
+    "from": { "type": ["string", "null"] },
+    "to": { "type": ["string", "null"] },
+    "at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" },
+    "detail": { "type": "object", "additionalProperties": true }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "labelsVersion": "1",
+  "status": "pending",
+  "description": "独立评估标签占位。当前 status=pending、labels 为空；不得伪造标注或据此报告准确率。冻结与独立人工审核不能由填写元数据自行证明。",
+  "schema": {
+    "types": {
+      "labelId": "string (LABEL:<16hex>)",
+      "runId": "string (RUN:<16hex>)",
+      "questionId": "string (Q:<16hex>)",
+      "entryRef": "string (ENT:<16hex>)",
+      "questionKind": "authorization-effect (M5 substantive judgment only)",
+      "humanVerdict": "supported | refuted | insufficient",
+      "familyId": "string (independent case / repair family identifier)",
+      "source": "production | historical | mutation | synthetic",
+      "annotator": "string",
+      "annotatedAt": "string (ISO-8601)",
+      "notes": "string"
+    },
+    "required": ["labelId", "runId", "questionId", "entryRef", "questionKind", "humanVerdict", "familyId", "source", "annotator", "annotatedAt"],
+    "freezeFields": ["frozenAt", "independentReviewer"]
+  },
+  "protocol": [
+    "由独立审核者冻结任务、规范和决定性反证；标签和 oracle 不得进入 Agent 的上下文、知识、缓存或 run 目录；",
+    "只对 authorization-effect 实质命题计入 20 正、20 反、10 缺信息；binding/check-presence/dominance 的简单题或恒弃答不能凑数；",
+    "区分生产、历史、变异和合成来源，开发集与 holdout 按家族、组件或时间隔离；单纯填写 frozenAt/independentReviewer 不证明审核独立性；",
+    "评估器只能计算子问题判断的局部指标；候选精度、无种子发现召回及 A/B/C/D 效果门仍需另外的案例和对照。"
+  ],
+  "labels": [],
+  "metrics": {
+    "precision": null,
+    "recall": null,
+    "note": "无标注 ⇒ 不报准确率。字段保留为 null 是**刻意的**：填 0 会被误读为『测过且为 0』。"
+  }
+}

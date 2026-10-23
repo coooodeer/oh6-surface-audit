@@ -1,0 +1,302 @@
+[
+  {
+    "id": 0,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/dfx/data_dfx/data_size_report_adapter.cpp",
+    "code": 0,
+    "ms": 25543,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 1,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/frameworks/osaccount/native/src/os_account_subscriber.cpp",
+    "code": 0,
+    "ms": 31115,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 2,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/services/accountmgr/src/osaccount/os_account_manager_service.cpp",
+    "code": 1,
+    "ms": 101019,
+    "category": "missing-generated-header",
+    "firstError": "'idomain_account_callback.h' file not found",
+    "astBytes": 0
+  },
+  {
+    "id": 3,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/services/accountmgr/test/unittest/os_account/os_account_inner_account_mgr_plugin_mock.cpp",
+    "code": 1,
+    "ms": 103425,
+    "category": "missing-generated-header",
+    "firstError": "'idomain_account_callback.h' file not found",
+    "astBytes": 0
+  },
+  {
+    "id": 4,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/test/fuzztest/appaccount_stub/verifycredentialstub_fuzzer/verifycredentialstub_fuzzer.cpp",
+    "code": 1,
+    "ms": 84087,
+    "category": "missing-generated-header",
+    "firstError": "'app_account_authenticator_callback_stub.h' file not found",
+    "astBytes": 0
+  },
+  {
+    "id": 5,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/test/fuzztest/osaccount/getosaccountlistfromdatabase_fuzzer/getosaccountlistfromdatabase_fuzzer.cpp",
+    "code": 0,
+    "ms": 29819,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 6,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/adapter/common/bus_center/boot_event/lnn_boot_event_monitor.cpp",
+    "code": 0,
+    "ms": 62431,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 7,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/core/bus_center/lnn/lane_hub/lane_manager/src/lnn_lane.c",
+    "code": 0,
+    "ms": 60147,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 8,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/core/frame/init/src/g_enhance_lnn_func.c",
+    "code": 0,
+    "ms": 57631,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 9,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/adapter/unittest/lnn_usb_adapter_test.cpp",
+    "code": 0,
+    "ms": 44210,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 10,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/common/utils/fuzztest/convertbtmactobinary_fuzzer/convertbtmactobinary_fuzzer.cpp",
+    "code": 0,
+    "ms": 7456,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 11,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/transmission/trans_channel/tcp_direct/unittest/mock/trans_tcp_direct_wifi_test_mock.cpp",
+    "code": 0,
+    "ms": 44864,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 12,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/dbinder/dbinder_service/src/dbinder_death_recipient.cpp",
+    "code": 0,
+    "ms": 10033,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 13,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/src/ani/rpc/src/rpc_ani_class.cpp",
+    "code": 0,
+    "ms": 8164,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 14,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/src/core/invoker/source/hitrace_invoker.cpp",
+    "code": 0,
+    "ms": 10530,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 15,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/test/unittest/common/ipc_capi_remote_object_unittest.cpp",
+    "code": 0,
+    "ms": 12407,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 16,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/test/fuzztest/dbinder/dbinder_service/src/socket/dbinderremotelistener_fuzzer/dbinderremotelistener_fuzzer.cpp",
+    "code": 0,
+    "ms": 8131,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 17,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/test/fuzztest/ipc/native/src/core/ipcthreadpool_fuzzer/ipcthreadpool_fuzzer.cpp",
+    "code": 0,
+    "ms": 8095,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 18,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/cj/src/emitter.cpp",
+    "code": 0,
+    "ms": 7556,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 19,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/emitter/napi/src/napi_emitter.cpp",
+    "code": 0,
+    "ms": 13569,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 20,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/eventhandler/src/file_descriptor_listener.cpp",
+    "code": 0,
+    "ms": 6500,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 21,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/eventhandler/test/unittest/lib_event_handler_inner_event_test.cpp",
+    "code": 0,
+    "ms": 9765,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 22,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/test/moduletest/event_handler_press_module_test.cpp",
+    "code": 0,
+    "ms": 9772,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 23,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/test/fuzztest/eventqueueannex_fuzzer/eventqueueannex_fuzzer.cpp",
+    "code": 0,
+    "ms": 6812,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 24,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/frameworks/inner_api/sandbox_manager/src/sandbox_manager_client.cpp",
+    "code": 1,
+    "ms": 11819,
+    "category": "missing-generated-header",
+    "firstError": "'isandbox_manager.h' file not found",
+    "astBytes": 0
+  },
+  {
+    "id": 25,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/services/common/database/src/variant_value.cpp",
+    "code": 0,
+    "ms": 8181,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 26,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/services/sandbox_manager/main/cpp/src/service/policy_trie.cpp",
+    "code": 0,
+    "ms": 30172,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 27,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/innerkits/sandbox_manager/cleanpersistpolicybypath_fuzzer/cleanpersistpolicybypath_fuzzer.cpp",
+    "code": 0,
+    "ms": 6222,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 28,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/innerkits/sandbox_manager/unpersistpolicytoken_fuzzer/unpersistpolicytoken_fuzzer.cpp",
+    "code": 0,
+    "ms": 6215,
+    "category": "ok",
+    "firstError": "",
+    "astBytes": 0
+  },
+  {
+    "id": 29,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/services/sandbox_manager/setpolicybybundlenamestub_fuzzer/setpolicybybundlenamestub_fuzzer.cpp",
+    "code": 1,
+    "ms": 38687,
+    "category": "missing-generated-header",
+    "firstError": "'isandbox_manager.h' file not found",
+    "astBytes": 0
+  }
+]

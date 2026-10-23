@@ -1,0 +1,18 @@
+{
+  "$id": "metadata-v1",
+  "version": 1,
+  "description": "AG0.2 metadata 记录契约。每条必须有 sourceFile/sourceLine/sha256，且能回到 snapshot。",
+  "required": ["metadataId", "kind", "snapshotId", "sourceFile", "sourceLine", "sha256", "source"],
+  "properties": {
+    "metadataId": { "type": "string", "pattern": "^M:[0-9a-f]{12}:[a-z-]+:[0-9a-f]{16}$" },
+    "kind": { "enum": ["idl", "sa", "napi", "permission", "ces", "harness"] },
+    "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "sourceFile": { "type": "string" },
+    "sourceLine": { "type": "integer" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "source": { "enum": ["own", "external-authority"] },
+    "producer": { "enum": ["AG0"] },
+    "schemaVersion": { "enum": ["1"] },
+    "payload": { "type": "object" }
+  }
+}

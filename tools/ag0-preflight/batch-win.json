@@ -1,0 +1,542 @@
+[
+  {
+    "id": 0,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/dfx/data_dfx/data_size_report_adapter.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 572,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 6387
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 25543,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 1,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/frameworks/osaccount/native/src/os_account_subscriber.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 973,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 6911
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 31115,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 2,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/services/accountmgr/src/osaccount/os_account_manager_service.cpp",
+    "win": {
+      "exit": 1,
+      "ms": 1016,
+      "category": "missing-generated-header",
+      "viaRsp": true,
+      "chars": 30822
+    },
+    "wsl": {
+      "exit": 1,
+      "ms": 101019,
+      "category": "missing-generated-header"
+    },
+    "firstError": "unable to make temporary file: Permission denied\r"
+  },
+  {
+    "id": 3,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/services/accountmgr/test/unittest/os_account/os_account_inner_account_mgr_plugin_mock.cpp",
+    "win": {
+      "exit": 1,
+      "ms": 1227,
+      "category": "missing-generated-header",
+      "viaRsp": true,
+      "chars": 30795
+    },
+    "wsl": {
+      "exit": 1,
+      "ms": 103425,
+      "category": "missing-generated-header"
+    },
+    "firstError": "unable to make temporary file: Permission denied\r"
+  },
+  {
+    "id": 4,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/test/fuzztest/appaccount_stub/verifycredentialstub_fuzzer/verifycredentialstub_fuzzer.cpp",
+    "win": {
+      "exit": 1,
+      "ms": 883,
+      "category": "missing-generated-header",
+      "viaRsp": false,
+      "chars": 22872
+    },
+    "wsl": {
+      "exit": 1,
+      "ms": 84087,
+      "category": "missing-generated-header"
+    },
+    "firstError": "'app_account_authenticator_callback_stub.h' file not found\r"
+  },
+  {
+    "id": 5,
+    "root": "base/account/os_account",
+    "file": "base/account/os_account/test/fuzztest/osaccount/getosaccountlistfromdatabase_fuzzer/getosaccountlistfromdatabase_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 969,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 6322
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 29819,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 6,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/adapter/common/bus_center/boot_event/lnn_boot_event_monitor.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 288,
+      "category": "ok",
+      "viaRsp": true,
+      "chars": 59232
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 62431,
+      "category": "ok"
+    },
+    "firstError": "unable to make temporary file: Permission denied\r"
+  },
+  {
+    "id": 7,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/core/bus_center/lnn/lane_hub/lane_manager/src/lnn_lane.c",
+    "win": {
+      "exit": 0,
+      "ms": 268,
+      "category": "ok",
+      "viaRsp": true,
+      "chars": 59185
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 60147,
+      "category": "ok"
+    },
+    "firstError": "unable to make temporary file: Permission denied\r"
+  },
+  {
+    "id": 8,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/core/frame/init/src/g_enhance_lnn_func.c",
+    "win": {
+      "exit": 0,
+      "ms": 212,
+      "category": "ok",
+      "viaRsp": true,
+      "chars": 59169
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 57631,
+      "category": "ok"
+    },
+    "firstError": "unable to make temporary file: Permission denied\r"
+  },
+  {
+    "id": 9,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/adapter/unittest/lnn_usb_adapter_test.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 939,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 11500
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 44210,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 10,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/common/utils/fuzztest/convertbtmactobinary_fuzzer/convertbtmactobinary_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 47,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 7755
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 7456,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 11,
+    "root": "foundation/communication/dsoftbus",
+    "file": "foundation/communication/dsoftbus/tests/core/transmission/trans_channel/tcp_direct/unittest/mock/trans_tcp_direct_wifi_test_mock.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 1234,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 11757
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 44864,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 12,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/dbinder/dbinder_service/src/dbinder_death_recipient.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 533,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 4870
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 10033,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 13,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/src/ani/rpc/src/rpc_ani_class.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 578,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3309
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 8164,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 14,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/src/core/invoker/source/hitrace_invoker.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 525,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 4214
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 10530,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 15,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/ipc/native/test/unittest/common/ipc_capi_remote_object_unittest.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 792,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 4345
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 12407,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 16,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/test/fuzztest/dbinder/dbinder_service/src/socket/dbinderremotelistener_fuzzer/dbinderremotelistener_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 560,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3442
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 8131,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 17,
+    "root": "foundation/communication/ipc",
+    "file": "foundation/communication/ipc/test/fuzztest/ipc/native/src/core/ipcthreadpool_fuzzer/ipcthreadpool_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 484,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3368
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 8095,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 18,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/cj/src/emitter.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 524,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3699
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 7556,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 19,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/emitter/napi/src/napi_emitter.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 624,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 6396
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 13569,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 20,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/eventhandler/src/file_descriptor_listener.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 212,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 5098
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 6500,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 21,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/eventhandler/test/unittest/lib_event_handler_inner_event_test.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 702,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 4488
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 9765,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 22,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/frameworks/test/moduletest/event_handler_press_module_test.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 726,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 4474
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 9772,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 23,
+    "root": "base/notification/eventhandler",
+    "file": "base/notification/eventhandler/test/fuzztest/eventqueueannex_fuzzer/eventqueueannex_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 440,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3257
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 6812,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 24,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/frameworks/inner_api/sandbox_manager/src/sandbox_manager_client.cpp",
+    "win": {
+      "exit": 1,
+      "ms": 393,
+      "category": "missing-generated-header",
+      "viaRsp": false,
+      "chars": 5738
+    },
+    "wsl": {
+      "exit": 1,
+      "ms": 11819,
+      "category": "missing-generated-header"
+    },
+    "firstError": "'isandbox_manager.h' file not found\r"
+  },
+  {
+    "id": 25,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/services/common/database/src/variant_value.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 373,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 4650
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 8181,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 26,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/services/sandbox_manager/main/cpp/src/service/policy_trie.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 519,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 16483
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 30172,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 27,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/innerkits/sandbox_manager/cleanpersistpolicybypath_fuzzer/cleanpersistpolicybypath_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 393,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3765
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 6222,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 28,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/innerkits/sandbox_manager/unpersistpolicytoken_fuzzer/unpersistpolicytoken_fuzzer.cpp",
+    "win": {
+      "exit": 0,
+      "ms": 346,
+      "category": "ok",
+      "viaRsp": false,
+      "chars": 3881
+    },
+    "wsl": {
+      "exit": 0,
+      "ms": 6215,
+      "category": "ok"
+    },
+    "firstError": ""
+  },
+  {
+    "id": 29,
+    "root": "base/accesscontrol/sandbox_manager",
+    "file": "base/accesscontrol/sandbox_manager/test/fuzztest/services/sandbox_manager/setpolicybybundlenamestub_fuzzer/setpolicybybundlenamestub_fuzzer.cpp",
+    "win": {
+      "exit": 1,
+      "ms": 497,
+      "category": "missing-generated-header",
+      "viaRsp": false,
+      "chars": 16978
+    },
+    "wsl": {
+      "exit": 1,
+      "ms": 38687,
+      "category": "missing-generated-header"
+    },
+    "firstError": "'isandbox_manager.h' file not found\r"
+  }
+]

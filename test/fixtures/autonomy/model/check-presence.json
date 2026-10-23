@@ -1,0 +1,13 @@
+{
+  "description": "mock 模式的 check-presence fixture。match 只按 purpose 匹配（runId/taskId 每轮不同，不能进匹配键）。decision=insufficient 是 MVP 的诚实默认：静态证据不支撑『有/无校验』的强结论。",
+  "fixtures": [
+    {
+      "match": { "purpose": "check-presence" },
+      "response": {
+        "decision": "insufficient",
+        "rationale": "mock fixture：静态证据只覆盖直接调用名，不覆盖宏/包装/上游，故不足以判定。",
+        "evidenceRefs": []
+      }
+    }
+  ]
+}

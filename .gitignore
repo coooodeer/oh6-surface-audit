@@ -1,0 +1,17 @@
+# Generated outputs and run artifacts
+out/
+logs/
+runtime/
+tmp/
+
+# Compiled eval fixtures (regenerate from source)
+eval/l5/build/
+
+# Dependencies
+node_modules/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+tmp_*

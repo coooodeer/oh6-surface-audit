@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "oh6-sec/external-cve-case.schema.json",
+  "title": "External CVE calibration case",
+  "description": "Only for testing obligation orchestration and verdict logic. Never maps to OH6.0 target; never production.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "cveId", "class", "cwe", "language", "source", "affected", "expected", "usage", "production"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^EXT-(P1|P2|P7|P8)-[0-9]+$" },
+    "cveId": { "type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]+$" },
+    "class": { "enum": ["P1", "P2", "P7", "P8"] },
+    "cwe": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^[0-9]+$" }
+    },
+    "language": { "enum": ["c", "cpp", "java", "rust", "go", "other"] },
+    "sourceKind": { "enum": ["inline-snippet", "file"] },
+    "completeFunction": { "type": "boolean" },
+    "fixCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "references": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "notes": { "type": "string" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pre", "post"],
+      "properties": {
+        "pre": { "type": "string" },
+        "post": { "type": "string" }
+      }
+    },
+    "affected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component", "file", "function"],
+      "properties": {
+        "component": { "type": "string" },
+        "file": { "type": "string" },
+        "function": { "type": "string" }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obligations", "preVerdict", "postVerdict", "product"],
+      "properties": {
+        "obligations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^O(10|[1-9])$" }
+        },
+        "preVerdict": { "enum": ["VIOLATION", "SATISFIED", "UNPROVEN"] },
+        "postVerdict": { "enum": ["VIOLATION", "SATISFIED", "UNPROVEN"] },
+        "product": { "enum": ["PROVEN-WEAKNESS", "NOT-VULN", "CONDITIONS-NOT-MET"] }
+      }
+    },
+    "usage": { "enum": ["obligation-calibration", "verdict-calibration", "negative-control"] },
+    "production": { "const": false }
+  }
+}

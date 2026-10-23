@@ -1,0 +1,155 @@
+{
+  "$id": "facts-v1",
+  "version": 1,
+  "description": "AG0 L1 事实的公共契约 + 各 kind 的必填字段。只做 schema 子集：type/required/enum/pattern/items/properties。",
+  "common": {
+    "required": ["factId", "snapshotId", "kind", "locator", "sourceRange", "role", "quality", "producer", "schemaVersion"],
+    "properties": {
+      "factId": { "type": "string", "pattern": "^F:[0-9a-f]{12}:[a-z-]+:[0-9a-f]{16}$" },
+      "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+      "kind": { "type": "string" },
+      "locator": { "type": "object" },
+      "role": { "enum": ["production", "test"] },
+      "producer": { "enum": ["AG0"] },
+      "schemaVersion": { "enum": ["1"] },
+      "quality": {
+        "type": "object",
+        "required": ["parse", "resolution"],
+        "properties": {
+          "parse": { "enum": ["full", "partial", "failed"] },
+          "resolution": { "enum": ["exact", "name-only", "unsupported", "syntax-only", "partial", "unknown"] },
+          "errorNodes": { "type": "integer" }
+        }
+      },
+      "sourceRange": {
+        "type": "object",
+        "required": ["file", "startLine", "endLine"],
+        "properties": {
+          "file": { "type": "string" },
+          "startLine": { "type": "integer" },
+          "endLine": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "kinds": {
+    "file": {
+      "required": ["path", "bytes", "lines", "sha256", "language"],
+      "properties": {
+        "path": { "type": "string" },
+        "bytes": { "type": "integer" },
+        "lines": { "type": "integer" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "language": { "enum": ["c", "cpp"] }
+      }
+    },
+    "function": {
+      "required": ["name", "owner", "signature", "startLine", "endLine", "bodyHash"],
+      "properties": {
+        "name": { "type": "string" },
+        "owner": { "type": "string" },
+        "signature": { "type": "string" },
+        "startLine": { "type": "integer" },
+        "endLine": { "type": "integer" },
+        "bodyHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "isTest": { "type": "boolean" }
+      }
+    },
+    "symbol": {
+      "required": ["name", "symbolKind", "declFile", "declLine", "scope"],
+      "properties": {
+        "name": { "type": "string" },
+        "symbolKind": { "enum": ["namespace", "class", "struct", "enum", "typedef", "macro"] },
+        "declFile": { "type": "string" },
+        "declLine": { "type": "integer" },
+        "scope": { "type": "string" }
+      }
+    },
+    "type": {
+      "required": ["expr", "type", "typeKind", "file", "line"],
+      "properties": {
+        "expr": { "type": "string" },
+        "type": { "type": "string" },
+        "typeKind": { "enum": ["builtin", "record", "alias", "unknown"] },
+        "file": { "type": "string" },
+        "line": { "type": "integer" }
+      }
+    },
+    "call": {
+      "required": ["caller", "calleeName", "callee", "line", "argc"],
+      "properties": {
+        "caller": { "type": "string", "pattern": "^F:" },
+        "calleeName": { "type": "string" },
+        "callee": { "type": ["string", "null"] },
+        "line": { "type": "integer" },
+        "argc": { "type": "integer" }
+      }
+    },
+    "cfg": {
+      "required": ["function", "nodes", "edges"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "nodes": { "type": "array", "items": { "type": "object", "required": ["id", "kind", "line"] } },
+        "edges": { "type": "array", "items": { "type": "object", "required": ["from", "to", "kind"] } },
+        "coverage": { "type": "number" }
+      }
+    },
+    "dfg": {
+      "required": ["function", "defs", "uses", "edges"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "defs": { "type": "array", "items": { "type": "object", "required": ["var", "line", "kind"] } },
+        "uses": { "type": "array", "items": { "type": "object", "required": ["var", "line"] } },
+        "edges": { "type": "array", "items": { "type": "object", "required": ["from", "to"] } },
+        "coverage": { "type": "number" }
+      }
+    },
+    "guard": {
+      "required": ["function", "line", "guardKind", "variables"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "line": { "type": "integer" },
+        "guardKind": { "enum": ["if", "switch", "loop", "assert", "null-check"] },
+        "variables": { "type": "array" },
+        "dominates": { "type": "boolean" }
+      }
+    },
+    "sink": {
+      "required": ["function", "line", "sinkKind", "calleeName", "argc"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "line": { "type": "integer" },
+        "sinkKind": { "enum": ["alloc", "copy", "call", "write", "read", "publish", "lock"] },
+        "calleeName": { "type": "string" },
+        "argc": { "type": "integer" }
+      }
+    },
+    "read": {
+      "required": ["function", "line", "expr", "varKind"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "line": { "type": "integer" },
+        "expr": { "type": "string" },
+        "varKind": { "enum": ["local", "param", "field", "global", "unknown"] }
+      }
+    },
+    "write": {
+      "required": ["function", "line", "expr", "varKind"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "line": { "type": "integer" },
+        "expr": { "type": "string" },
+        "varKind": { "enum": ["local", "param", "field", "global", "unknown"] }
+      }
+    },
+    "lock": {
+      "required": ["function", "line", "lockKind", "name"],
+      "properties": {
+        "function": { "type": "string", "pattern": "^F:" },
+        "line": { "type": "integer" },
+        "lockKind": { "enum": ["acquire", "release", "hold"] },
+        "name": { "type": "string" }
+      }
+    }
+  }
+}

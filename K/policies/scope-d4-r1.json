@@ -1,0 +1,37 @@
+{
+  "policyId": "scope-d4-r1",
+  "version": "1.0.0",
+  "description": "AG0 事实范围：5 个 D4/R1 组件、4 个 compdb part、metadata 源（含两条 external-authority）",
+  "roots": [
+    { "root": "base/account/os_account", "part": "account" },
+    { "root": "foundation/communication/dsoftbus", "part": "communication" },
+    { "root": "foundation/communication/ipc", "part": "communication" },
+    { "root": "base/notification/eventhandler", "part": "notification" },
+    { "root": "base/accesscontrol/sandbox_manager", "part": "accesscontrol" }
+  ],
+  "compdbParts": ["account", "communication", "notification", "accesscontrol"],
+  "sourceExtensions": [".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"],
+  "cExtensions": [".c"],
+  "testPathPattern": "/(test|tests|unittest|fuzztest|mock|moduletest|systemtest)/",
+  "testFilePattern": "(_test|_unittest|_fuzzer|_mock)\\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$",
+  "metadataSources": [
+    { "kind": "idl", "glob": "**/*.idl", "scope": "roots", "required": true },
+    { "kind": "sa", "glob": "**/sa_profile/**/*.json", "scope": "roots", "required": true },
+    { "kind": "permission", "glob": "**/*permission*.json", "scope": "roots", "required": true },
+    { "kind": "napi", "glob": null, "scope": "code-derived", "required": true },
+    { "kind": "ces", "glob": "**/sa_profile/**/*.json#start-on-demand.commonevent", "scope": "roots", "required": false },
+    { "kind": "harness", "glob": null, "scope": "definition-pending", "required": false },
+    {
+      "kind": "permission-authority",
+      "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+      "scope": "external-authority",
+      "required": false
+    },
+    {
+      "kind": "ces-authority",
+      "dir": "base/notification/common_event_service",
+      "scope": "external-authority",
+      "required": false
+    }
+  ]
+}
