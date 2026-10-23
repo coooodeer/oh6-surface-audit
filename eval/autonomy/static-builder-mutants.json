@@ -1,0 +1,47 @@
+{
+  "labelsVersion": "sandbox-suite-mutants-1",
+  "labelSource": "builder-llm-oracle",
+  "labelAuthority": "builder-llm-oracle",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "normMethod": "SetPolicy",
+  "sourceType": "controlled-mutant",
+  "labels": [
+    {
+      "file": "permission-mismatch.cpp",
+      "sha256": "d9099f9b3ee203cac9c0f59b57be0f572545665acb3ff02313bf5ad75c4adcbc",
+      "familyId": "permission-mismatch",
+      "expected": "finding",
+      "rationale": "The early return protects a PolicyInfoManager call, but the checked constant names FILE_ACCESS_PERSIST instead of the published SetPolicy permission."
+    },
+    {
+      "file": "missing-permission-check.cpp",
+      "sha256": "074c30910a49f39a969a4e238946e36bf9dd77578fd61b6f0ab5f78716e83ee7",
+      "familyId": "missing-permission-check",
+      "expected": "finding",
+      "rationale": "The complete local function has a unique policy operation and no CheckPermission call."
+    },
+    {
+      "file": "guard-non-dominating.cpp",
+      "sha256": "7dab5a1521a6f73eb284cde1c446f905f127190b68a33b013661c9b8dc5c90ab",
+      "familyId": "guard-non-dominating",
+      "expected": "finding",
+      "rationale": "The documented permission is checked, but denial only logs and falls through to the operation."
+    },
+    {
+      "file": "compliant-excluded.cpp",
+      "sha256": "2a9570be1c96efea3a5f76305fe257dac25f14ba0853cef22cef4375eb268e55",
+      "familyId": "compliant-excluded",
+      "expected": "excluded",
+      "rationale": "The calling-token documented permission has an immediate denial return before the unique operation."
+    },
+    {
+      "file": "ambiguous-operation.cpp",
+      "sha256": "c9f870339903bbe1b86f60ee9a82e7bf00a4856ef5d50f3165d67be2e85088bf",
+      "familyId": "ambiguous-operation",
+      "expected": "insufficient",
+      "rationale": "Two policy callsites prevent the single-operation local proof from choosing one target."
+    }
+  ]
+}

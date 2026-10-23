@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy question record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §5.1 记录封套 + §5.4 Question。recordId 恒等于 payload.questionId。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §5.4/§9.2 记录与 Question。recordId 恒等于 payload.questionId。",
   "type": "object",
   "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
   "additionalProperties": false,
@@ -32,7 +32,7 @@
       "properties": {
         "questionId": { "type": "string", "pattern": "^Q:[0-9a-f]{16}$" },
         "taskId": { "type": "string", "pattern": "^TASK:[0-9a-f]{16}$" },
-        "kind": { "type": "string", "enum": ["binding", "check-presence", "dominance", "authorization-effect", "permission-argument-match", "input-boundary-local"] },
+        "kind": { "type": "string", "enum": ["binding", "check-presence", "dominance", "authorization-effect", "permission-argument-match", "static-contract", "static-permission-match", "input-boundary-local"] },
         "proposition": { "type": "string", "minLength": 4 },
         "polarity": { "type": "string", "enum": ["exists", "forall"] },
         "status": { "type": "string", "enum": ["unknown", "supported", "refuted", "insufficient", "conflict"] },

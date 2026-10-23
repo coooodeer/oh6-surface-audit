@@ -36,6 +36,7 @@ const assessment = require('../lib/autonomy/assessment');
 const reportLib = require('../lib/autonomy/report');
 const verticalLib = require('../lib/autonomy/vertical');
 const staticProofLib = require('../lib/autonomy/static-proof');
+const permissionArgumentLib = require('../lib/autonomy/permission-argument');
 const branchLib = require('../lib/autonomy/branch');
 const recoveryLib = require('../lib/autonomy/recovery');
 const verificationLib = require('../lib/autonomy/verification');
@@ -280,7 +281,7 @@ async function cmdRun(opts) {
     throw new CliError('authorization-v1 requires off; vertical experiments require off, live or replay');
   }
   const modelOverride = opts.flags.model || null;
-  if (modelOverride && (!verticalExperiment || mode !== 'live' ||
+  if (modelOverride && ((!verticalExperiment && !opts.flags.knowledge) || mode !== 'live' ||
       !/^[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(modelOverride))) {
     throw new CliError('--model requires vertical live and a catalog-style model ID');
   }
@@ -299,11 +300,14 @@ async function cmdRun(opts) {
     { origin: 'entry-scan', anchorRefs: [entry.entityId] }) === selectedTaskId);
   let verticalKnowledge = verticalExperiment ? (selectedEntry?.method === 'UnSetPolicyAsync'
     ? knowledgeLib.loadPersistenceAuthorization(facts) : knowledgeLib.loadAuthorization(facts)) : null;
+  let staticSuite = null;
   if (opts.flags['knowledge-review']) throw new CliError('run requires a published --knowledge version; direct review is not a version');
   if (opts.flags.knowledge) {
     if (!verticalExperiment) {
-      throw new CliError('--knowledge requires a supported published vertical norm');
-    }
+      if (scope.scopeId !== 'sandbox_manager-pilot') throw new CliError('static suite requires sandbox_manager-pilot scope');
+      try { staticSuite = knowledgeLib.loadKnowledgeSuite(opts.flags.knowledge.split(',').map(resolvePath), facts); }
+      catch (e) { throw new CliError(`knowledge suite rejected: ${e.message}`); }
+    } else {
     try {
       verticalKnowledge = knowledgeLib.loadPublished(resolvePath(opts.flags.knowledge),
         opts.flags['review-public-key'] ? loadTrustedReviewKey(opts.flags['review-public-key']) : null, facts);
@@ -321,6 +325,7 @@ async function cmdRun(opts) {
         throw new Error('knowledge-norm-entry-mismatch');
       }
     } catch (e) { if (e instanceof CliError) throw e; throw new CliError(`knowledge version rejected: ${e.message}`); }
+    }
   }
   if (opts.flags['review-public-key'] && !opts.flags.knowledge) {
     throw new CliError('--review-public-key requires --knowledge');
@@ -343,12 +348,15 @@ async function cmdRun(opts) {
       replaySource = modelLib.loadReplaySource(new storeLib.RunStore(storeLib.RunStore.resolve(opts.flags['replay-run'])));
     } catch (e) { throw new CliError(`replay source invalid: ${e.message}`); }
     if (replaySource.snapshotId !== facts.snapshotId || replaySource.scopeId !== scope.scopeId ||
-        replaySource.knowledgeVersion !== verticalKnowledge.knowledgeVersion) {
+        replaySource.knowledgeVersion !== (staticSuite || verticalKnowledge)?.knowledgeVersion) {
       throw new CliError('replay source scope, snapshot or knowledge version mismatch');
     }
     if (experiment === 'vertical-v2' &&
         [...replaySource.calls.values()].some((call) => call.finishReason !== 'stop')) {
       throw new CliError('replay source has an incomplete model response');
+    }
+    if (staticSuite && replaySource.architectureVersion !== '1.0.18-static-arbitration') {
+      throw new CliError('static suite replay requires a matching live source');
     }
     if (experiment === 'vertical-v2' &&
         replaySource.architectureVersion !== (verticalKnowledge?.norm?.authority === 'builder-llm-review'
@@ -369,13 +377,18 @@ async function cmdRun(opts) {
   const proposal = discovery.proposeTasks(anchorsInfo, facts, scope);
 
   const budget = tools.createBudget(budgetPolicy);
+  if (staticSuite && mode === 'live' &&
+      (!Number.isInteger(budgetPolicy.maxModelRequests) || budgetPolicy.maxModelRequests > 30 ||
+       budgetPolicy.maxModelRequests < 1)) {
+    throw new CliError('static suite live requires 1 <= maxModelRequests <= 30');
+  }
   const capabilityProfile = ['off', 'replay'].includes(mode) ? 'readonly-local' : 'model-enabled';
   const gateway = modelLib.ModelGateway.create({ mode, budget, modelOverride, replaySource });
   if (mode === 'live' && !gateway.keyPresent()) {
     throw new CliError(`live mode requires ${gateway.config.apiKeyEnv || 'OH6_LLM_API_KEY'} (live never downgrades to mock)`, EXIT.ARG, 'missing-key');
   }
 
-  const selectedModelId = verticalExperiment
+  const selectedModelId = verticalExperiment || staticSuite
     ? (replaySource ? replaySource.modelId : (modelOverride || gateway.config.model)) : null;
   const implementationFingerprint = recoveryLib.implementationFingerprint();
   const pinnedImplementation = resuming
@@ -386,7 +399,7 @@ async function cmdRun(opts) {
   const { __path, ...scopeDocument } = scope;
   const resumeFingerprint = ids.sha256Hex(ids.canonicalJson({ scope: scopeDocument, budget: budgetPolicy,
     snapshotId: facts.snapshotId, inputManifestId: manifestId,
-    knowledgeVersion: verticalKnowledge ? verticalKnowledge.knowledgeVersion : null,
+    knowledgeVersion: (staticSuite || verticalKnowledge)?.knowledgeVersion || null,
     mode, experiment, modelId: selectedModelId,
     ...(pinnedImplementation ? { implementationFingerprint: pinnedImplementation } : {}) }));
   let prepared = null;
@@ -418,11 +431,11 @@ async function cmdRun(opts) {
     capabilityProfile,
     budget: budgetPolicy,
     manifestId,
-      architectureVersion: experiment === 'vertical-v2' ? (verticalKnowledge?.norm?.authority === 'builder-llm-review'
+      architectureVersion: staticSuite ? '1.0.18-static-arbitration' : experiment === 'vertical-v2' ? (verticalKnowledge?.norm?.authority === 'builder-llm-review'
         ? '1.0.14-static-experiment' : '1.0.13-vertical-experiment')
         : experiment === 'vertical-v1' ? '1.0.5-vertical-experiment'
       : (experiment ? '1.0.2-auth-experiment' : '1.0.16-static-scan'),
-    knowledgeVersion: verticalKnowledge ? verticalKnowledge.knowledgeVersion : null,
+    knowledgeVersion: (staticSuite || verticalKnowledge)?.knowledgeVersion || null,
     modelId: selectedModelId
   });
   // 台账必须挂在 run 目录上；网关在 store 之前创建是为了先做 key 预检
@@ -454,6 +467,21 @@ async function cmdRun(opts) {
   const taskIds = new Set(plannedTasks.map((t) => t.taskId));
   const plannedQuestions = prepared ? prepared.records.question.map((row) => row.payload) :
     proposal.questions.filter((q) => taskIds.has(q.taskId));
+  if (staticSuite) {
+    for (const task of plannedTasks.filter((t) => t.origin === 'entry-scan')) {
+      const anchor = anchorsInfo.anchors.get(task.anchorRefs[0]);
+      if (anchor?.kind !== 'idl') continue;
+      for (const kind of ['static-contract', ...(staticSuite.byMethod.has(anchor.method)
+        ? ['static-permission-match'] : [])]) {
+        const proposition = state.TASK_QUESTION_TEXT[kind];
+        plannedQuestions.push({
+          questionId: ids.questionId('question', { anchorRef: anchor.entityId, kind, text: proposition }),
+          taskId: task.taskId, kind, proposition, polarity: 'forall',
+          status: 'unknown', basis: 'derived', assurance: 'bounded-analysis', evidenceRefs: [], missingRefs: []
+        });
+      }
+    }
+  }
   let effectQuestion = null;
   let permissionQuestion = null;
   if (verticalExperiment) {
@@ -516,6 +544,10 @@ async function cmdRun(opts) {
   fs.copyFileSync(path.join(indexArtifacts.dir, 'entities.jsonl'), store.file('entities.jsonl'));
   fs.copyFileSync(path.join(indexArtifacts.dir, 'relations.jsonl'), store.file('relations.jsonl'));
   fs.copyFileSync(path.join(indexArtifacts.dir, 'index-manifest.json'), store.file('index-manifest.json'));
+  if (staticSuite) store.writeJson('static-knowledge.json', {
+    knowledgeVersion: staticSuite.knowledgeVersion,
+    versions: staticSuite.versions.map((k) => k.knowledgeVersion).sort()
+  });
 
   store.appendEvent({
     kind: 'run-created',
@@ -565,6 +597,7 @@ async function cmdRun(opts) {
     facts,
     scope,
     knowledge: verticalKnowledge,
+    knowledgeSuite: staticSuite,
     store,
     budget,
     anchors: anchorsInfo.anchors,
@@ -584,6 +617,7 @@ async function cmdRun(opts) {
   const assessmentRecords = prepared ? prepared.records.assessment : [];
   const contextRecords = prepared ? prepared.records.context : [];
   const detailById = new Map();
+  const staticProofs = {};
   for (const [entityId, a] of anchorsInfo.anchors) detailById.set(entityId, buildAnchorDetail(a));
 
   let stoppedReason = null;
@@ -603,7 +637,9 @@ async function cmdRun(opts) {
       }
       const anchor = anchorsInfo.anchors.get(task.anchorRefs[0]);
       const entryRef = task.anchorRefs[0];
-      const taskCtx = { ...ctxBase, taskId: task.taskId, buildMissingRef: null };
+      const taskCtx = { ...ctxBase, taskId: task.taskId,
+        knowledge: staticSuite?.byMethod.get(anchor?.method) || verticalKnowledge,
+        buildMissingRef: null };
       const results = [];
 
       const pushResult = async (toolName, args, questionId) => {
@@ -678,23 +714,41 @@ async function cmdRun(opts) {
       const checkQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'check-presence');
       const effectQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'authorization-effect');
       const permissionQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'permission-argument-match');
+      const contractQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'static-contract');
+      const suitePermissionQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'static-permission-match');
 
       await pushResult('inspectEntry', { entryRef }, bindingQ ? bindingQ.questionId : null);
-      const direct = await pushResult('inspectAuthorization', { entryRef }, checkQ ? checkQ.questionId : null);
       const binding = ctxBase.resolveBinding(entryRef);
+      if (staticSuite && anchor?.kind === 'idl' && binding.binding === 'resolved') {
+        await pushResult('getApplicableNorms', { entryRef }, contractQ?.questionId);
+      }
+      const direct = await pushResult('inspectAuthorization', { entryRef }, checkQ ? checkQ.questionId : null);
       if ((experiment === 'authorization-v1' ||
-          ['1.0.15-static-scan', '1.0.16-static-scan'].includes(store.run.payload.architectureVersion)) &&
+          ['1.0.15-static-scan', '1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration'].includes(store.run.payload.architectureVersion)) &&
           task.origin === 'entry-scan' && binding.binding === 'resolved' &&
           direct.payload.status === 'ok' && direct.payload.answer.status === 'refuted') {
         await pushResult('inspectDelegation', { entryRef }, checkQ ? checkQ.questionId : null);
       }
       const relQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'dominance');
-      if (store.run.payload.architectureVersion === '1.0.16-static-scan' &&
+      if (['1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration'].includes(store.run.payload.architectureVersion) &&
           task.origin === 'entry-scan' && anchor?.kind === 'idl' && binding.binding === 'resolved') {
         await pushResult('inspectOperationCandidate', { entryRef }, relQ?.questionId);
       }
+      let suiteComparison = null;
+      let suiteProof = null;
+      if (staticSuite && contractQ) {
+        if (suitePermissionQ && binding.binding === 'resolved') {
+          const compared = await pushResult('inspectPermissionArgument', { entryRef }, suitePermissionQ.questionId);
+          suiteComparison = compared.payload.observations;
+        }
+        suiteProof = staticProofLib.analyze(facts, anchor, binding, taskCtx.knowledge,
+          suiteComparison, { includeNewFamilies: true,
+            includeCandidateContext: store.run.payload.architectureVersion === '1.0.18-static-arbitration' });
+        staticProofs[task.taskId] = suiteProof;
+        if (suiteProof.operationRef) task.operationRef = suiteProof.operationRef;
+      }
       let vertical = null;
-      if (effectQ) {
+      if (effectQ && verticalExperiment) {
         vertical = await verticalLib.analyze({ facts, anchor, binding, task, store, gateway,
           knowledge: verticalKnowledge, summaryCache,
           enableFollowup: experiment === 'vertical-v2', twoRoundFollowup: experiment === 'vertical-v2',
@@ -747,6 +801,18 @@ async function cmdRun(opts) {
       store.appendRecord('context', ctxRecord);
 
       const taskQuestions = plannedQuestions.filter((q) => q.taskId === task.taskId);
+      let liveCheck = null;
+      let liveReview = null;
+      if (store.run.payload.architectureVersion === '1.0.18-static-arbitration' &&
+          ['live', 'mock', 'replay'].includes(mode) && contractQ && !verticalExperiment) {
+        const allowed = new Set([...results.map((r) => r.recordId), ...contextRecords.map((c) => c.recordId)]);
+        liveReview = await assessment.adjudicateLiveCheck({ gateway, task, purpose: 'static-contract-review',
+          question: contractQ, context, allowedRefs: allowed,
+          contextText: retrieval.renderForModel(context) + '\n' + JSON.stringify({
+            norm: taskCtx.knowledge?.norm || null, staticProof: suiteProof,
+            permissionComparison: suiteComparison
+          }), maxTokens: 1200 });
+      }
       const off = assessment.adjudicateOff({
         task,
         questions: taskQuestions,
@@ -757,6 +823,56 @@ async function cmdRun(opts) {
         experiment: experiment || (['1.0.15-static-scan', '1.0.16-static-scan']
           .includes(store.run.payload.architectureVersion) ? 'static-scan' : null)
       });
+      if (contractQ) {
+        const arbitration = store.run.payload.architectureVersion === '1.0.18-static-arbitration'
+          ? assessment.arbitrateStaticContract(suiteProof, liveReview) : null;
+        const decision = arbitration?.decision || (suiteProof?.status === 'finding' ? 'refuted' :
+          suiteProof?.status === 'excluded' ? 'supported' : 'insufficient');
+        const reasonCode = arbitration?.reasonCode || (suiteProof?.reason === 'guard-shape-unsupported' ? 'guard-shape-unsupported' :
+          !taskCtx.knowledge ? 'norm-not-applicable' :
+          suiteProof?.reason === 'permission-argument-unresolved' || suiteProof?.reason === 'permission-check-ambiguous'
+            ? 'permission-argument-unresolved' : 'operation-target-unproven');
+        const miss = ['insufficient', 'conflict'].includes(decision) ? state.buildMissing({
+          questionId: contractQ.questionId, reasonCode,
+          targetRefs: [entryRef, ...(arbitration?.reasonCode && suiteProof?.operationRef ? [suiteProof.operationRef] : [])],
+          nextActions: reasonCode === 'norm-not-applicable' ? [] : ['inspect-source-and-contract']
+        }) : null;
+        if (miss) off.extraMissing.push(miss);
+        const refs = results.filter((row) => ['getApplicableNorms', 'inspectOperationCandidate',
+          'inspectPermissionArgument'].includes(row.payload.tool)).map((row) => row.recordId);
+        off.updates.push({ questionId: contractQ.questionId, status: decision,
+          basis: arbitration?.modelCallRef ? 'mixed' : 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: refs, missingRefs: miss ? [miss.missingId] : [] });
+        off.assessments.push(assessment.makeAssessment({
+          task, question: contractQ, entryRef, snapshotId: facts.snapshotId, decision,
+          basis: arbitration?.modelCallRef ? 'mixed' : 'derived', assurance: 'bounded-analysis', evidenceRefs: refs,
+          counterEvidenceRefs: decision === 'refuted' ? refs : [],
+          missingRefs: miss ? [miss.missingId] : [], contextId: context.contextId,
+          modelCallRef: arbitration?.modelCallRef || null,
+          rationale: arbitration?.rationale || suiteProof?.family || suiteProof?.reason || 'No applicable published norm.'
+        }));
+      }
+      if (suitePermissionQ) {
+        const decision = ['supported', 'refuted'].includes(suiteComparison?.status)
+          ? suiteComparison.status : 'insufficient';
+        const tool = results.find((row) => row.payload.tool === 'inspectPermissionArgument');
+        const refs = tool ? [tool.recordId] : [];
+        const miss = decision === 'insufficient' ? state.buildMissing({
+          questionId: suitePermissionQ.questionId, reasonCode: 'permission-argument-unresolved',
+          targetRefs: [entryRef], nextActions: ['inspect-permission-argument']
+        }) : null;
+        if (miss) off.extraMissing.push(miss);
+        off.updates.push({ questionId: suitePermissionQ.questionId, status: decision, basis: 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: refs, missingRefs: miss ? [miss.missingId] : [] });
+        off.assessments.push(assessment.makeAssessment({
+          task, question: suitePermissionQ, entryRef, snapshotId: facts.snapshotId, decision,
+          basis: 'derived', assurance: 'bounded-analysis', evidenceRefs: refs,
+          counterEvidenceRefs: decision === 'refuted' ? refs : [],
+          missingRefs: miss ? [miss.missingId] : [], contextId: context.contextId,
+          rationale: suiteComparison?.reason || (suiteComparison
+            ? `${suiteComparison.observedPermission} vs ${suiteComparison.expectedPermission}` : 'comparison unavailable')
+        }));
+      }
       if (effectQ) {
         const reasons = [];
         if (vertical.applicability?.status !== 'applicable') reasons.push('norm-applicability-unapproved');
@@ -807,8 +923,8 @@ async function cmdRun(opts) {
         }));
       }
 
-      let liveCheck = null;
-      if ((mode === 'live' || mode === 'mock') && checkQ && !verticalExperiment) {
+      if (store.run.payload.architectureVersion !== '1.0.18-static-arbitration' &&
+          ['live', 'mock', 'replay'].includes(mode) && checkQ && !verticalExperiment) {
         const allowed = new Set([...results.map((r) => r.recordId), ...contextRecords.map((c) => c.recordId)]);
         liveCheck = await assessment.adjudicateLiveCheck({
           gateway,
@@ -823,7 +939,8 @@ async function cmdRun(opts) {
 
       // 记录 missing（去重）
       const seenMissing = new Set(missingRecords.map((m) => m.payload.missingId));
-      for (const miss of [...off.extraMissing, ...(liveCheck ? liveCheck.extraMissing : [])]) {
+      for (const miss of [...off.extraMissing, ...(liveCheck ? liveCheck.extraMissing : []),
+        ...(liveReview ? liveReview.extraMissing : [])]) {
         if (seenMissing.has(miss.missingId)) continue;
         seenMissing.add(miss.missingId);
         const rec = state.makeRecord({
@@ -990,6 +1107,8 @@ async function cmdRun(opts) {
     lastTaskId: null,
     stoppedReason
   });
+
+  if (staticSuite) store.writeJson('static-proofs.json', staticProofs);
 
   const reportRes = reportLib.writeReport(store, {
     scopeId: scope.scopeId,
@@ -1214,7 +1333,7 @@ function cmdCheck(opts) {
     if (r.payload.snapshotId !== snapshotId) add('snapshot-mismatch', `report ${r.recordId}`);
     if (!['candidate', 'observation', 'excluded', 'finding'].includes(r.payload.reportability)) add('bad-enum', `report ${r.recordId}`);
     if (r.payload.reportability === 'finding' &&
-        (runRecord.payload.architectureVersion !== '1.0.14-static-experiment' ||
+        (!['1.0.14-static-experiment', '1.0.17-static-scan', '1.0.18-static-arbitration'].includes(runRecord.payload.architectureVersion) ||
           r.payload.verificationStatus !== 'static-only')) add('finding-not-allowed', `report ${r.recordId}`);
     for (const e of r.payload.evidenceRefs) if (!toolIds.has(e)) add('dangling-ref', `report ${r.recordId} -> evidence ${e}`);
   }
@@ -1249,6 +1368,72 @@ function cmdCheck(opts) {
   }
 
   // report-model 一致性（语义哈希可复算）
+  let staticProofs = null;
+  if (['1.0.17-static-scan', '1.0.18-static-arbitration'].includes(runRecord.payload.architectureVersion)) {
+    try {
+      const pin = JSON.parse(fs.readFileSync(path.join(dir, 'static-knowledge.json'), 'utf8'));
+      staticProofs = JSON.parse(fs.readFileSync(path.join(dir, 'static-proofs.json'), 'utf8'));
+      const scope = loadScope(DEFAULT_SCOPE);
+      const facts = openFacts(scope, snapshotId);
+      const suite = knowledgeLib.loadKnowledgeSuite(pin.versions.map((v) =>
+        path.join(knowledgeLib.PUBLISHED_DIR, v.slice(7), 'knowledge.json')), facts);
+      if (pin.knowledgeVersion !== suite.knowledgeVersion ||
+          pin.knowledgeVersion !== runRecord.payload.knowledgeVersion) throw new Error('suite version drift');
+      const anchors = discovery.buildAnchors(facts, scope);
+      for (const task of tasks.filter((row) => row.payload.origin === 'entry-scan')) {
+        const entry = anchors.anchors.get(task.payload.anchorRefs[0]);
+        if (entry?.kind !== 'idl') continue;
+        const binding = discovery.resolveBinding(entry.entityId, { facts, scope, anchors: anchors.anchors });
+        const knowledge = suite.byMethod.get(entry.method);
+        const comparison = knowledge && permissionArgumentLib.compare(facts, entry, binding, knowledge);
+        const proof = staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
+          { includeNewFamilies: true,
+            includeCandidateContext: runRecord.payload.architectureVersion === '1.0.18-static-arbitration' });
+        if (ids.canonicalJson(proof) !== ids.canonicalJson(staticProofs[task.recordId])) {
+          add('static-proof-drift', task.recordId);
+        }
+        const contract = questions.find((q) => q.payload.taskId === task.recordId && q.payload.kind === 'static-contract');
+        const contractAssessment = assessments.find((a) => a.payload.questionId === contract?.recordId)?.payload;
+        let modelReview = null;
+        if (runRecord.payload.architectureVersion === '1.0.18-static-arbitration') {
+          const callDir = path.join(dir, 'model-calls');
+          const calls = fs.existsSync(callDir) ? fs.readdirSync(callDir) : [];
+          const review = calls.map((file) => JSON.parse(fs.readFileSync(path.join(dir, 'model-calls', file), 'utf8')))
+            .find((call) => call.taskId === task.recordId && call.purpose === 'static-contract-review');
+          const allowed = new Set([...evRes.rows.filter((event) => event.kind === 'tool-completed' &&
+            event.taskId === task.recordId).map((event) => event.detail.resultId),
+          ...contexts.filter((row) => row.payload.taskId === task.recordId).map((row) => row.recordId)]);
+          if (review?.status === 'ok' && ['refuted', 'conflict'].includes(review.parsed?.decision) &&
+              Array.isArray(review.parsed.evidenceRefs) && review.parsed.evidenceRefs.every((ref) => allowed.has(ref)) &&
+              !assessment.FORBIDDEN_TOKENS.some((token) => JSON.stringify(review.parsed).includes(token))) {
+            modelReview = { decision: review.parsed.decision, gate: 'accepted',
+              rationale: String(review.parsed.rationale || '').slice(0, 400), modelCallRef: review.callId };
+          }
+        }
+        const arbitration = runRecord.payload.architectureVersion === '1.0.18-static-arbitration'
+          ? assessment.arbitrateStaticContract(proof, modelReview) : null;
+        const verdict = arbitration?.decision || (proof.status === 'finding' ? 'refuted' :
+          proof.status === 'excluded' ? 'supported' : 'insufficient');
+        const contractMissing = contractAssessment?.missingRefs.map((id) =>
+          missings.find((row) => row.recordId === id)?.payload.reasonCode);
+        if (!contract || contract.payload.status !== verdict ||
+            contractAssessment?.decision !== verdict ||
+            (proof.operationRef && task.payload.operationRef !== proof.operationRef) ||
+            (arbitration?.reasonCode && (!contractMissing?.includes(arbitration.reasonCode) ||
+              contractAssessment.modelCallRef !== arbitration.modelCallRef))) {
+          add('static-assessment-drift', task.recordId);
+        }
+        const tool = toolResults.find((row) => row.payload.questionId ===
+          questions.find((q) => q.payload.taskId === task.recordId &&
+            q.payload.kind === 'static-permission-match')?.recordId &&
+          row.payload.tool === 'inspectPermissionArgument');
+        if (knowledge && binding.binding === 'resolved' &&
+            ids.canonicalJson(tool?.payload.observations) !== ids.canonicalJson(comparison)) {
+          add('static-permission-drift', task.recordId);
+        }
+      }
+    } catch (e) { add('static-suite-drift', e.message); }
+  }
   const rebuilt = reportLib.buildReportModel({
     tasks,
     questions,
@@ -1258,12 +1443,14 @@ function cmdCheck(opts) {
     snapshotId,
     architectureVersion: runRecord.payload.architectureVersion,
     staticProof: fs.existsSync(path.join(dir, 'vertical-analysis.json'))
-      ? JSON.parse(fs.readFileSync(path.join(dir, 'vertical-analysis.json'), 'utf8')) : null
+      ? JSON.parse(fs.readFileSync(path.join(dir, 'vertical-analysis.json'), 'utf8')) : null,
+    staticProofs
   });
   if (['1.0.7-vertical-experiment', '1.0.8-vertical-experiment',
     '1.0.9-vertical-experiment', '1.0.10-vertical-experiment',
     '1.0.11-vertical-experiment', '1.0.12-vertical-experiment',
-    '1.0.13-vertical-experiment', '1.0.14-static-experiment'].includes(runRecord.payload.architectureVersion) &&
+    '1.0.13-vertical-experiment', '1.0.14-static-experiment', '1.0.17-static-scan',
+    '1.0.18-static-arbitration'].includes(runRecord.payload.architectureVersion) &&
       ids.canonicalJson(reportRows.map((row) => row.payload).sort((a, b) => a.reportId.localeCompare(b.reportId))) !==
       ids.canonicalJson(rebuilt.rows)) {
     add('report-model-drift', 'report rows differ from assessments');

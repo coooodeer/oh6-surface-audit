@@ -147,6 +147,23 @@ test('index：两次构建实体/关系 ID 序列完全一致（确定性）', (
   assert.deepStrictEqual(a.relations.map((r) => r.relationId), b.relations.map((r) => r.relationId));
 });
 
+test('index：scope 限额生效，缓存不得跨 scope 或限额复用', () => {
+  const dir = tmpdir();
+  try {
+    const f = facts();
+    indexLib.writeIndex(f, scope, { dir });
+    assert.ok(indexLib.loadIndex(f, { dir }));
+    const narrowed = { ...scope, limits: { ...scope.limits, maxIndexFunctions: 7 } };
+    const other = factsLib.AutonomyFacts.open({ snapshot: SNAPSHOT, scope: narrowed });
+    assert.strictEqual(other.limits.maxIndexFunctions, 7);
+    assert.strictEqual(other.index().functions.length, 7);
+    assert.strictEqual(other.index().truncated.functions, true);
+    assert.strictEqual(indexLib.loadIndex(other, { dir }), null);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('discovery：19 入口 + 5 覆盖抽样 = 24 task / 72 question，且无重复无驳回', () => {
   const f = facts();
   const anchorsInfo = discovery.buildAnchors(f, scope);

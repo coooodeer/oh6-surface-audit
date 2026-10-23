@@ -1,0 +1,36 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "codex-builder-2026-10-23",
+  "reviewedAt": "2026-10-23T08:00:00Z",
+  "decision": "accepted",
+  "normId": "NORM:aa1295d063607f4d",
+  "proposalVersion": "sha256:7b3da1d13142fa1ff4a34bba99d6cf5a463d798fd885b3cce52bb825f50615ff",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "appliesTo": [
+    "UnSetPolicy", "UnSetPolicyAsync", "PersistPolicy", "UnPersistPolicy",
+    "StartAccessingPolicy", "StopAccessingPolicy", "CheckPolicy",
+    "PersistPolicyByTokenId", "UnPersistPolicyByTokenId", "UnSetAllPolicyByToken",
+    "CleanPersistPolicyByPath", "CleanPolicyByUserId", "StartAccessingByTokenId",
+    "SetPolicyByBundleName"
+  ],
+  "applicabilityRationale": {
+    "UnSetPolicy": "README_zh.md:23 includes this IDL method; service.cpp:417-436 checks SET_POLICY_PERMISSION_NAME before the manager call.",
+    "UnSetPolicyAsync": "IDL declares the async method; service.cpp:445-448 delegates directly to UnSetPolicy and inherits its scoped check.",
+    "PersistPolicy": "README_zh.md:23 includes this IDL method; service.cpp:257-287 checks ACCESS_PERSIST_PERMISSION_NAME before AddPolicy.",
+    "UnPersistPolicy": "README_zh.md:23 includes this IDL method; service.cpp:289-315 checks ACCESS_PERSIST_PERMISSION_NAME before RemovePolicy.",
+    "StartAccessingPolicy": "README_zh.md:23 includes this IDL method; service.cpp:482-511 checks ACCESS_PERSIST_PERMISSION_NAME before StartAccessingPolicy.",
+    "StopAccessingPolicy": "README_zh.md:23 includes this IDL method; service.cpp:513-539 checks ACCESS_PERSIST_PERMISSION_NAME before StopAccessingPolicy.",
+    "CheckPolicy": "README_zh.md:23 excludes CheckPersistPolicy, not this distinct IDL method; service.cpp:450-480 checks permission before MatchPolicy.",
+    "PersistPolicyByTokenId": "README_zh.md:23 includes this IDL method; service.cpp:317-350 has a permission check and an AddPolicy call.",
+    "UnPersistPolicyByTokenId": "README_zh.md:23 includes this IDL method; service.cpp:352-380 has a permission check and a RemovePolicy call.",
+    "UnSetAllPolicyByToken": "README_zh.md:23 includes this IDL method; service.cpp:590-602 checks SET_POLICY_PERMISSION_NAME before UnSetAllPolicyByToken.",
+    "CleanPersistPolicyByPath": "README_zh.md:23 includes this IDL method; service.cpp:177-191 instead uses IsFileManagerCalling before the manager call; this is not an unguarded operation.",
+    "CleanPolicyByUserId": "README_zh.md:23 includes this IDL method; service.cpp:193-207 instead uses IsFileManagerCalling before the manager call; this is not an unguarded operation.",
+    "StartAccessingByTokenId": "README_zh.md:23 includes this IDL method; service.cpp:576-588 instead requires FOUNDATION_UID before the manager call; this is not unguarded.",
+    "SetPolicyByBundleName": "README_zh.md:23 includes this distinct IDL method; service.cpp:210-256 has an authorization check, but the current operation-candidate query cannot prove one target."
+  },
+  "rationale": "Builder-LLM interprets README_zh.md:23 for the named IDL methods, excluding SetPolicy, SetPolicyAsync through exact delegation, and CheckPersistPolicy. Applicability alone does not establish a static finding; source-backed proof and explicit limitations remain necessary."
+}

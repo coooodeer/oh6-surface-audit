@@ -95,11 +95,10 @@ test('P5 Phase 1: impact refuted -> T4; missed permission checks -> T4', () => {
   assert.equal(dvid.productVerdict, 'NOT-VULN');
 });
 
-test('P5 report/status files exist and state headline', () => {
+test('P5 report exists and states headline', () => {
   const md = fs.readFileSync(path.join(OUT, 'report', 'p5-implementation.md'), 'utf8');
   assert.match(md, new RegExp(`本仓新确认 P5 漏洞 \\*\\*${summary.headline.newConfirmed}\\*\\*`));
   assert.match(md, new RegExp(`weak 候选 \\*\\*${summary.headline.newWeak}\\*\\*`));
-  assert.ok(fs.existsSync(path.join(__dirname, '..', 'IMPLEMENTATION-STATUS-P5.md')));
 });
 
 test('P5 artifacts contain no needs-human/pending', () => {

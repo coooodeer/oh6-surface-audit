@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy tool-result record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §5.1 记录封套 + §5.5 ToolResult。recordId 恒等于 payload.resultId。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §5.4/§11.3 记录与 ToolResult。recordId 恒等于 payload.resultId。",
   "type": "object",
   "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
   "additionalProperties": false,

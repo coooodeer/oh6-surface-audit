@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy event record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §6/P3：events.jsonl 的 append-only 事件。seq 从 1 开始连续。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §17.3：events.jsonl 的 append-only 事件。seq 从 1 开始连续。",
   "type": "object",
   "required": ["seq", "actionId", "runId", "taskId", "kind", "from", "to", "at", "detail"],
   "additionalProperties": false,

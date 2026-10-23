@@ -1,7 +1,7 @@
 {
   "$id": "manifest-v1",
   "version": 1,
-  "description": "ArtifactManifest（AG-EXECUTION/README §2）。所有阶段产物必须带 manifest 或可回查 manifestId。",
+  "description": "旧事实层 ArtifactManifest。相关产物携带 manifest 或可回查 manifestId；新 Agent 的记录合同见 AGENT-ARCHITECTURE-GUIDE.md §5.4。",
   "required": ["manifestId", "snapshotId", "factSchemaVersion", "rulesVersion", "createdAt", "producer", "artifactRefs"],
   "properties": {
     "manifestId": { "type": "string", "pattern": "^AM-[0-9a-f]{16}$" },

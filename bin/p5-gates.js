@@ -30,10 +30,9 @@ function main() {
   });
 
   const reportExists = fs.existsSync(path.join(OUT_ROOT, 'report', 'p5-implementation.md'));
-  const statusExists = fs.existsSync(path.join(OUT_ROOT, '..', 'IMPLEMENTATION-STATUS-P5.md'));
   const gates = runGates('p5', {
     audit, fixtures, l4b, claims, verdicts, calibration, oldRun, claimSummary, p5Summary,
-    noHuman, reportExists, statusExists
+    noHuman, reportExists
   });
   const liveBlocked = !l4b || l4b.simulated === true;
   const summary = {

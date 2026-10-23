@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy missing record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §5.1 记录封套 + §5.4 Missing。recordId 恒等于 payload.missingId。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §5.4/§9.3 记录与 Missing。recordId 恒等于 payload.missingId。",
   "type": "object",
   "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
   "additionalProperties": false,

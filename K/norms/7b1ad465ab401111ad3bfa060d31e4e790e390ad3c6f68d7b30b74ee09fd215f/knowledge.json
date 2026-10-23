@@ -1,0 +1,89 @@
+{
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "knowledgeVersion": "sha256:7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f",
+  "norm": {
+    "normId": "NORM:aa1295d063607f4d",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "base/accesscontrol/sandbox_manager/README_zh.md",
+      "line": 23,
+      "sha256": "b19edec78838e3a48ddea5e90ad11118ba2145a2c62fa50a454d29d769a5cb97",
+      "text": "2. 除SetPolicy、CheckPersistPolicy接口外，其余接口调用者需具有ohos.permission.FILE_ACCESS_PERSIST权限，权限定义详见[access_token](https://gitee.com/openharmony/security_access_token)仓"
+    },
+    "permission": "ohos.permission.FILE_ACCESS_PERSIST",
+    "header": {
+      "file": "base/accesscontrol/sandbox_manager/services/sandbox_manager/main/cpp/include/service/sandbox_manager_const.h",
+      "sha256": "173bad38826e9384d9a2369a6f38ba4a341d5d2a347fdbd9f2b1d18feeb00cd3",
+      "factRef": "F:2142c229d142:file:88ac8ad7615f873d"
+    },
+    "appliesTo": [
+      "UnSetPolicy",
+      "UnSetPolicyAsync",
+      "PersistPolicy",
+      "UnPersistPolicy",
+      "StartAccessingPolicy",
+      "StopAccessingPolicy",
+      "CheckPolicy",
+      "PersistPolicyByTokenId",
+      "UnPersistPolicyByTokenId",
+      "UnSetAllPolicyByToken",
+      "CleanPersistPolicyByPath",
+      "CleanPolicyByUserId",
+      "StartAccessingByTokenId",
+      "SetPolicyByBundleName"
+    ],
+    "limitation": "The README describes other interfaces generally; async delegation and exceptions require independent review.",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:e6e8647f35300406"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "codex-builder-2026-10-23",
+    "reviewedAt": "2026-10-23T08:00:00Z",
+    "decision": "accepted",
+    "normId": "NORM:aa1295d063607f4d",
+    "proposalVersion": "sha256:7b3da1d13142fa1ff4a34bba99d6cf5a463d798fd885b3cce52bb825f50615ff",
+    "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+    "appliesTo": [
+      "UnSetPolicy",
+      "UnSetPolicyAsync",
+      "PersistPolicy",
+      "UnPersistPolicy",
+      "StartAccessingPolicy",
+      "StopAccessingPolicy",
+      "CheckPolicy",
+      "PersistPolicyByTokenId",
+      "UnPersistPolicyByTokenId",
+      "UnSetAllPolicyByToken",
+      "CleanPersistPolicyByPath",
+      "CleanPolicyByUserId",
+      "StartAccessingByTokenId",
+      "SetPolicyByBundleName"
+    ],
+    "applicabilityRationale": {
+      "UnSetPolicy": "README_zh.md:23 includes this IDL method; service.cpp:417-436 checks SET_POLICY_PERMISSION_NAME before the manager call.",
+      "UnSetPolicyAsync": "IDL declares the async method; service.cpp:445-448 delegates directly to UnSetPolicy and inherits its scoped check.",
+      "PersistPolicy": "README_zh.md:23 includes this IDL method; service.cpp:257-287 checks ACCESS_PERSIST_PERMISSION_NAME before AddPolicy.",
+      "UnPersistPolicy": "README_zh.md:23 includes this IDL method; service.cpp:289-315 checks ACCESS_PERSIST_PERMISSION_NAME before RemovePolicy.",
+      "StartAccessingPolicy": "README_zh.md:23 includes this IDL method; service.cpp:482-511 checks ACCESS_PERSIST_PERMISSION_NAME before StartAccessingPolicy.",
+      "StopAccessingPolicy": "README_zh.md:23 includes this IDL method; service.cpp:513-539 checks ACCESS_PERSIST_PERMISSION_NAME before StopAccessingPolicy.",
+      "CheckPolicy": "README_zh.md:23 excludes CheckPersistPolicy, not this distinct IDL method; service.cpp:450-480 checks permission before MatchPolicy.",
+      "PersistPolicyByTokenId": "README_zh.md:23 includes this IDL method; service.cpp:317-350 has a permission check and an AddPolicy call.",
+      "UnPersistPolicyByTokenId": "README_zh.md:23 includes this IDL method; service.cpp:352-380 has a permission check and a RemovePolicy call.",
+      "UnSetAllPolicyByToken": "README_zh.md:23 includes this IDL method; service.cpp:590-602 checks SET_POLICY_PERMISSION_NAME before UnSetAllPolicyByToken.",
+      "CleanPersistPolicyByPath": "README_zh.md:23 includes this IDL method; service.cpp:177-191 instead uses IsFileManagerCalling before the manager call; this is not an unguarded operation.",
+      "CleanPolicyByUserId": "README_zh.md:23 includes this IDL method; service.cpp:193-207 instead uses IsFileManagerCalling before the manager call; this is not an unguarded operation.",
+      "StartAccessingByTokenId": "README_zh.md:23 includes this IDL method; service.cpp:576-588 instead requires FOUNDATION_UID before the manager call; this is not unguarded.",
+      "SetPolicyByBundleName": "README_zh.md:23 includes this distinct IDL method; service.cpp:210-256 has an authorization check, but the current operation-candidate query cannot prove one target."
+    },
+    "rationale": "Builder-LLM interprets README_zh.md:23 for the named IDL methods, excluding SetPolicy, SetPolicyAsync through exact delegation, and CheckPersistPolicy. Applicability alone does not establish a static finding; source-backed proof and explicit limitations remain necessary.",
+    "reviewRef": "REVIEW:e6e8647f35300406",
+    "sha256": "e6e8647f3530040652c40f3322c8d5e0b98df226bbb6c2872d242344bda51fdf"
+  }
+}

@@ -77,3 +77,22 @@ test('truncated live JSON is charged and archived but cannot be interpreted or r
         /^RUN-[0-9a-f]{16}$/.test(path.basename(target))) fs.rmSync(target, { recursive: true, force: true });
   }
 });
+
+test('authentication failure stops later live network requests in the same run', async () => {
+  let sends = 0;
+  let reserved = 0;
+  const gateway = new ModelGateway({ mode: 'live', modelOverride: 'cn:test',
+    budget: { reserveModel: () => { reserved++; } } });
+  gateway._transport = { keyPresent: () => true, send: () => {
+    sends++;
+    return Promise.resolve({ kind: 'auth-failed', reason: 'http-401', wallMs: 1 });
+  } };
+  const request = { purpose: 'check-presence', contextId: 'CTX:aaaaaaaaaaaaaaaa',
+    messages: [{ role: 'user', content: 'bounded' }] };
+  const first = await gateway.invoke({ ...request, taskId: 'TASK:aaaaaaaaaaaaaaaa' });
+  const second = gateway.invoke({ ...request, taskId: 'TASK:bbbbbbbbbbbbbbbb' });
+  assert.equal(first.reason, 'auth-failed');
+  assert.equal(second.reason, 'auth-failed');
+  assert.equal(sends, 1);
+  assert.equal(reserved, 1);
+});

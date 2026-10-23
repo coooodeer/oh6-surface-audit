@@ -40,9 +40,11 @@
         "normRef": { "type": "string", "pattern": "^NORM:" },
         "reviewRef": { "type": "string", "pattern": "^REVIEW:" },
         "operationRef": { "type": "string", "pattern": "^F:" },
+        "findingFamily": { "type": "string", "enum": ["permission-mismatch", "missing-permission-check", "guard-non-dominating", "compliant-excluded"] },
         "expectedPermission": { "type": "string", "minLength": 1 },
         "observedPermission": { "type": "string", "minLength": 1 },
         "limitation": { "type": "string", "minLength": 12 },
+        "counterexampleRationale": { "type": "string", "maxLength": 400 },
         "decision": { "type": "string", "enum": ["supported", "refuted", "insufficient", "conflict"] },
         "permissionArgument": {
           "type": "object",

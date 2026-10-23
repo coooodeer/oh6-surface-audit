@@ -31,13 +31,12 @@ test('P1P2P7P8 artifacts: T1=0, no PROVEN-VULN, O10 all unproven', () => {
   }
 });
 
-test('P1P2P7P8 report and status files exist and state the headline', () => {
+test('P1P2P7P8 report exists and states the headline', () => {
   const md = fs.readFileSync(path.join(OUT, 'report', 'p1p2p7p8-implementation.md'), 'utf8');
   assert.match(md, /T1=0/);
   assert.match(md, /L5/);
   assert.match(md, /static-proxy/);
   assert.match(md, /PROVEN-VULN/);
-  assert.ok(fs.existsSync(path.join(ROOT, 'IMPLEMENTATION-STATUS-P1P2P7P8.md')));
 });
 
 test('P1P2P7P8 outputs are UTF-8 without BOM or U+FFFD', () => {

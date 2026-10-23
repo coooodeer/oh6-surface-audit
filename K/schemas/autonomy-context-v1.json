@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy context packet record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §6/P5 ContextPacket：入口、绑定候选、函数窗口（≤80 行）、guards、calls、metadata、token 估算与截断声明。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §10.3 ContextPacket：入口、绑定候选、函数窗口（≤80 行）、guards、calls、metadata、token 估算与截断声明。",
   "type": "object",
   "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
   "additionalProperties": false,

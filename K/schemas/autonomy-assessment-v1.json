@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy assessment record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §5.1 记录封套 + §5.6 Assessment。recordId 恒等于 payload.assessmentId。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §5.4/§15.1 记录与 Assessment。recordId 恒等于 payload.assessmentId。",
   "type": "object",
   "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
   "additionalProperties": false,

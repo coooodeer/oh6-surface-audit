@@ -1,8 +1,8 @@
 # 自主审计 Agent MVP 交付结果（AUTONOMY-RESULT）
 
-> 依据：`AG-EXECUTION/AUTONOMY-MVP-GOAL-GUIDE.md`
+> 历史记录：2026-10-22 的 `1.0.0-mvp` 交付验收，原目标书已归档删除。此处的“无 runtime witness 不出 finding”、固定三问和测试数量仅描述该旧 run；现行静态 `finding` 出口与验收以 `AGENT-ARCHITECTURE-GUIDE.md` 为准，不用本记录推断当前能力。
 > 交付日期：2026-10-22
-> 事实快照：`sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e`（AG0，只读复用，未重建未改写）
+> 事实快照：`sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e`（只读复用，未重建未改写）
 > 试点 run：`RUN:9b1bdf44daebe542`（复跑 `RUN:ed75ea5cb9a0176e`）
 > 工作区：`D:\oh6.0\OpenHarmony-v6.0-Release`；工具目录：`oh6-surface-audit`
 
@@ -22,12 +22,12 @@ MVP 闭环跑通：`doctor → index → run(off) → check → report` 全绿�
 
 ```text
 bin/autonomy.js                              # CLI：doctor|index|run|tools|check|report|verify
-lib/autonomy/ids.js                          # 自治 ID（复用 lib/facts/ids.js，不改 AG0）
+lib/autonomy/ids.js                          # 自治 ID（复用 lib/facts/ids.js，不改既存事实层）
 lib/autonomy/jsonl.js                        # StringDecoder 跨块安全 JSONL + 坏行计数
 lib/autonomy/schema.js                        # JSON-Schema 受限子集校验器（无第三方依赖）
 lib/autonomy/store.js                        # run 目录、append-only 事件、原子 checkpoint、证据归档、校验和
 lib/autonomy/state.js                        # 记录封套 + Task/Question/Missing 状态机与 reason 注册表
-lib/autonomy/facts.js                        # AG0 Facts 只读适配（作用域索引、哈希校验、上限）
+lib/autonomy/facts.js                        # 既存 Facts 的只读适配（作用域索引、哈希校验、上限）
 lib/autonomy/doctor.js                       # 只读环境/能力检查（零网络）
 lib/autonomy/tools.js                        # dispatcher + 6 工具 + 5 unsupported
 lib/autonomy/index.js                        # 事实 → 实体/关系索引 + 对账
@@ -47,7 +47,7 @@ test/autonomy-check-failures.test.js
 test/fixtures/autonomy/model/check-presence.json
 eval/autonomy/pilot-summary.json
 eval/autonomy/labels.json                    # 只建 schema + status=pending，无伪造标注
-eval/autonomy/ag0-baseline.json              # 开工前 AG0 基线（22 个文件的 sha256）
+eval/autonomy/ag0-baseline.json              # 开工前事实层基线（22 个文件的 sha256）
 tools/autonomy-pilot-summary.js              # 从 run 产物复算 pilot-summary（只读、不重裁决）
 out/autonomy/index/sha256-2142.../           # entities/relations/index-manifest
 out/autonomy/RUN-9b1bdf44daebe542/           # 试点 run 产物（含 evidence/、checkpoints/、verification/）
@@ -261,7 +261,7 @@ gates       : agent campaigns 20/20, 15/15, 13/13, 5/5, 8/8, 8/8；gates 70/70�
 | `test/autonomy-pipeline.test.js` | run(off) 零模型调用、seq 连续、check、report 幂等、确定性、mock fixture、replay-miss、live 缺 key、预算停止、`--task`、verify、参数错误 |
 | `test/autonomy-check-failures.test.js` | tail-partial、ledger-corrupt、evidence 丢失、dangling-ref、report-model-drift、forbidden-token、task-state-mismatch、run.json 坏/不可解析、verify 缺 plan |
 
-### 12 AG0 未被修改
+### 12 既存事实层未被修改
 
 ```powershell
 node -e "…（逐文件对比 eval/autonomy/ag0-baseline.json 的 sha256 与字节数）"
@@ -315,7 +315,7 @@ files=22 changed=0 snapshotId=sha256:2142c229d142bdacc472969fe96d73a36da4554f377
 ## 5 已知缺口（如实列出）
 
 1. **`Q-dominance` 恒 `insufficient`**：MVP 不做支配关系与对象一致性分析，24 个任务全部带 `dominance-unproven`；
-2. **绑定只是名称 + owner 段匹配**，不是 AG1 的 canonical entry + 完整绑定：重载/同名不同 owner 会落到 `suspect`；
+2. **绑定只是名称 + owner 段匹配**，不是 canonical entry + 完整绑定：重载/同名不同 owner 会落到 `suspect`；
 3. **`Q-check` 只看函数体内的直接调用名**：宏、包装、基类、上游、跨函数的校验都不在观察范围内；
 4. **SA / NAPI 入口没有方法体**，只能产出 `binding-metadata-only` 的 observation；
 5. **finding 关闭**：没有 runtime witness，`verify` 只返回 `blocked`；

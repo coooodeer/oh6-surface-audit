@@ -1,9 +1,9 @@
 # OpenHarmony 6.0 自主审计 Agent 架构与实现规范
 
-> 规范版本：1.0.24。
+> 规范版本：1.0.28。
 > 生效日期：2026-10-23。
 > 适用环境：Windows 原生工具调用与 OpenHarmony 6.0 源码；Linux/WSL 仅用于逐次批准、不可由 Windows 满足的例外验证。
-> 权威范围：本文是 `oh6-surface-audit` 新 Agent 架构、接口、实现顺序和验收要求的唯一开发规范。其他架构材料只保留历史价值，不补充或覆盖本文。
+> 权威范围：本文是 `oh6-surface-audit` 自主审计 Agent 架构、接口、实现顺序和验收要求的唯一开发规范。旧路线文档已移除，不构成依赖。
 > 实现状态：本文规定静态审计目标，不宣称目标模块已交付。第 3 节单独列出现有实现；未列为现有的接口、命令和 schema 均为待开发合同。
 
 ## 0. 使用方式与规范效力
@@ -11,6 +11,8 @@
 本文自包含。实现者不需要查阅其他架构设计文件来决定数据格式、模块责任、控制流程、失败语义或验收条件。可以读取产品源码、正式 API 文档、配置和现有工具代码作为事实来源，但不能把旧工具的行为自动视为新系统要求。
 
 **2026-10-23 目标修订优先级：** 主流程只验收静态审计完整闭环，最高等级为有界的 `Static Finding`；离线 Builder-LLM 负责规范审批、样本与基准标注，显式打标来源，不以人工签名或动态 runner 为前置条件。第 24 节是按当时目标写入的历史实验日志；其旧验收判断与本段及第 7、15、16、21-23 节冲突时，以本次修订为准。Runtime-LLM 仍不能审批自己的证据或规范。
+
+**1.0.25 静态实验授权：** 本阶段最高出口为 `finding`，并固定 `verificationStatus: "static-only"`；`verify` / M6 是可选扩展，不阻断 M4/M5。开发态 Builder-LLM 可以直接生成并审核知识规范（`authority: "builder-llm-review", generatedBy: "builder-llm", needsHumanTuning: true`）、隔离的受控变异体与 `builder-llm-oracle` 基准标签；经来源标注且满足有界源码证明条件的规范可直接支撑 `finding` 和 `excluded`，不要求人工再次审批。用户授权 `sandbox_manager-pilot` 范围的多入口 live 实验：沿用现有网关，每次 run 的 `maxModelRequests` 不超过 30；其他范围和超额请求不由此授权。所有常规工具在 Windows 原生环境执行。
 
 本文中的“必须”“禁止”是验收要求；“建议”是可调整的默认选择，调整时需要记录理由和实验结果。示例中的 `example` ID、虚构函数和占位哈希仅用于说明数据形状，不是生产证据。代码片段为接口或伪代码，除明确标注现有命令外，不代表现在可以执行。
 
@@ -108,7 +110,7 @@
 
 ## 3. 当前实现与可复用边界
 
-以下为编写本文时对代码的观察，不是新架构的完成证明。开发前运行环境检查，不能把历史测试数量当作当前结果。
+当前实现以 `bin/autonomy.js`、`lib/autonomy/`、`K/`、`test/autonomy-*.test.js` 为准。事实层 `lib/facts/` 与 `out/facts/<snapshotId>/` 只读复用；其稳定 ID 与哈希按实际 schema 和源码校验，不依赖旧阶段设计文档。以下旧组件只提供事实或运输能力，不引入其编排或裁决规则。开发前运行环境检查，不能把历史测试数量当作当前结果。
 
 | 位置 | 现有能力 | 接入要求 |
 |---|---|---|
@@ -118,18 +120,15 @@
 | `lib/facts/query.js` | 名称、语法、调用记录、源码、类型和检查点查询 | 不是完整语义查询服务，必须经过适配器 |
 | `lib/facts/cfg.js`、`dfg.js` | 局部结构和粗粒度 def-use | 可作线索，不能宣称完整路径和别名分析 |
 | `lib/facts/ids.js`、`manifest.js`、`schema.js` | 标识、清单和事实格式校验 | 新记录使用独立 schema，不覆写已有事实 |
-| `lib/l4b.js` | 配置加载、运输适配、证据引用校验经验 | 仅复用通用能力，不继承固定类别提示词和判断规则 |
 | 相邻工具的 `src/llm/http.js` | HTTP 运输、usage、错误和请求描述 | 通过薄网关接入，验证取消、超时和脱敏 |
-| `lib/agent/pipeline.js`、`state.js` | 既有 campaign 编排和状态聚合 | 不是本规范的任务闭环，保留原行为直到明确切换 |
-| `lib/l5/`、`lib/l7/` | 部分验证和报告基础 | 通过显式适配器复用，不继承旧结论等级 |
 
-2026-10-22 已有 `lib/autonomy/`、`bin/autonomy.js` 的试点闭环：固定 binding/check-presence/dominance 三问，off 模式在 sandbox_manager 上运行 24 个任务、产出 7 个 candidate 和 0 个 finding。它不是第 12-14 节规定的自主提案、跨视图 Action 闭环；正式规范、派生答案、精确入口绑定与运行验证仍待实现。现有 7 个 candidate 中 5 个来自非入口覆盖抽样；评审指出另 2 个为委托检查包装，这一试点尚无人工标注指标。具体产物见 `AG-EXECUTION/AUTONOMY-RESULT.md`、`REVIEW-AGENT-ARCHITECTURE-GUIDE.md` 和 `eval/autonomy/pilot-summary.json`，不能将机械流程通过测试等同于审计有效性。
+2026-10-22 的 `1.0.0-mvp` 试点闭环：固定 binding/check-presence/dominance 三问，off 模式在 sandbox_manager 上运行 24 个任务、产出 7 个 candidate 和 0 个 finding。它不是第 12-14 节规定的自主提案、跨视图 Action 闭环；当时正式规范、派生答案、精确入口绑定与运行验证尚未实现。7 个 candidate 中 5 个来自非入口覆盖抽样，另 2 个为委托检查包装；该试点没有独立标注指标。原始产物见 `AG-EXECUTION/AUTONOMY-RESULT.md` 和 `eval/autonomy/pilot-summary.json`。这是历史状态，不是当前实现清单；后续实验与仍未验收项见第 24.22-24.24 节，不能将流程测试通过等同于审计有效性。
 
-同日的授权小实验（`24.4）在原 MVP 上增加 opt-in 的入口候选准入和一跳委托取证，保留旧 run。最终实验版 `1.0.2-auth-experiment` 的 24 个任务均为 observation，0 candidate / 0 finding；19 个入口均缺具体操作绑定。这证明了有界取证和缺口显式登记的工程可行性，**不证明发现精度、召回或自主控制器有效**。
+同日的授权小实验（§24.4）在原 MVP 上增加 opt-in 的入口候选准入和一跳委托取证，保留旧 run。最终实验版 `1.0.2-auth-experiment` 的 24 个任务均为 observation，0 candidate / 0 finding；19 个入口均缺具体操作绑定。这证明了有界取证和缺口显式登记的工程可行性，**不证明发现精度、召回或自主控制器有效**。
 
 后续 `vertical-v1` 的真实 live、跨视图分支、模型账本和验证计划实验见第 24.5 节。实验版本号 `1.0.5-vertical-experiment` 是 run 标识，不代表本文规范版本，也不代表 M0-M6 已全部验收。
 
-2026-10-23 新增 Builder 来源两条已发布规范和 `1.0.14-static-experiment`：精确异步委托、权限实参、限定操作目标和早退语法可产生限定于“文档权限契约错配”的静态 finding；`check` 重抽取规范与源码复算。见 §24.20。当前仍是两入口试点，非 19 入口全量自主调查；授权效果大命题及未知解析分支未被此局部结论证明。
+截至 §24.24，`1.0.18-static-arbitration` 在固定的 `sandbox_manager-pilot` 范围支持 19 入口加 5 抽样任务的扫描、两条 Builder 规范、0/1 跳有界证明、静态 finding/excluded 与模型分歧仲裁。全范围 off run 为 6 finding / 8 excluded / 10 observation；受控模拟传输的 live→replay 通过，真实供应商 live 与同模型 A/B/C/D 尚未验收。没有跨组件无种子召回或独立真值结论，M6 仍可选。历史步骤与 run ID 见 §24.20-24.24。
 
 必须先处理的事实接入问题：
 
@@ -1392,7 +1391,7 @@ M0-M4 只做完成纵向流程所需的最小覆盖，不建设全量规则库�
 
 ### 24.5 Windows 原生纵向增量实验与阶段判定（2026-10-22）
 
-在第 24.4 节的 MVP 上，以 opt-in `vertical-v1` 固定 `SetPolicyAsync` 一条 IDL 入口和同一 AG0 快照，接入源码/README 原文锚定的授权规范**提案**、精确一跳委托、问题级条件摘要、模型提出的受限 `inspectDelegation` Action、局部裁决，以及从 `Unmarshalling` 名称线索提出的 `input-boundary` 子任务。子任务对解析目标只取得 type hint，保持 `insufficient`。提案不能由模型发布；`SetPolicy` README 规则也不自动适用于 `SetPolicyAsync`。程序的证据门不会因模型意见把 name-only 操作边升级为确定目标。
+在第 24.4 节的 MVP 上，以 opt-in `vertical-v1` 固定 `SetPolicyAsync` 一条 IDL 入口和同一事实快照，接入源码/README 原文锚定的授权规范**提案**、精确一跳委托、问题级条件摘要、模型提出的受限 `inspectDelegation` Action、局部裁决，以及从 `Unmarshalling` 名称线索提出的 `input-boundary` 子任务。子任务对解析目标只取得 type hint，保持 `insufficient`。提案不能由模型发布；`SetPolicy` README 规则也不自动适用于 `SetPolicyAsync`。程序的证据门不会因模型意见把 name-only 操作边升级为确定目标。
 
 固定 live run 为 `RUN:4792cd3d41b052b3`，`snapshotId=sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e`，模型 `cn:glm-5.3-flash`，Windows Node 25.2.1。2 task、5 question、8 tool、2 次模型请求（输入 1375、输出 294 token），约 11.2 秒；1 observation、1 excluded、0 candidate、0 finding。`report` 的语义哈希为 `sha256:fddb0be7a90bc439901abc5736f01a1f34466d670eecbe333a252a7a9fa15eb1`；`check` 为 0 error / 0 warning。7 个缺口类别包含规范适用性未批准、操作目标未证明、解析调用目标未证明和验证不可用，不能把“没发出 candidate”计为精度或召回收益。产物在 `out/autonomy/RUN-4792cd3d41b052b3/`，包含上下文、Assessment、摘要、Action、事件、调用账本、报告及校验和。工具调用只在 Windows 原生执行，未使用 Linux/WSL；模型 HTTP 网关是已配置的外部服务，不是 Linux 工具执行。
 
@@ -1506,7 +1505,7 @@ live 密钥只从 Windows 宿主 User 环境临时注入子进程，未写入产
 
 ### 24.16 第二轮评审核查与 1.0.8 复验（2026-10-22）
 
-`REVIEW-ITERATION-2.md` §7.0 三项前置已逐项核查，取舍及原始统计见 `ITERATION-2-PREFLIGHT.md`。采纳静态 candidate 与 finding 分离；将带来源锚定的模型规范提案、盲标模型一致性诊断列为后续开发实验，**目前并未实现**。不采纳删除 M6/正式 finding 验收，也不以模型自签规范或同源模型标签取代外部审核。理由是前者直接缩小用户要求的 M0–M6 完整目标，后两者只能检验模型彼此一致，不能核实适用/例外或发现漏报。`verify` 仍为 `blocked`、`executedCommands=[]`；这不是 M6 已通过。将来模型生成的规范提案也只能保持 `proposed`，正式知识发布仍要求独立签名审核。未取得足够独立正反/缺信息案例时，不生成虚假的 10/10/5 或 20/20/10 验收集。
+当时的三项前置核查采纳静态 candidate 与 finding 分离、规范提案来源锚定和模型一致性诊断，但暂未发布 Builder 审核规范；`verify` 为 `blocked`。这是 2026-10-22 的历史决定，已被第 0、7、15-16 节和 §24.20-24.24 的静态闭环授权及实现取代，不作为当前审批或出口门槛。
 
 出口规则消融在旧 `RUN:29898a9ac486f1f4` 上只读复算：24 task 原为 0 candidate；仅按入口绑定且 `check-presence=refuted` 得到 2 个候选，但均为已观察到一跳委托检查的异步包装，且均缺 `operationRef`。保留操作绑定条件仍为 0。故不把增加 candidate 数作为效果提升，不以未知支配关系直接否定候选，也不在委托/操作缺口尚存时放松出口。后续应先提出可回查的具体操作和完整反证，再由独立样本检验 actionability。
 
@@ -1518,7 +1517,7 @@ Windows 原生执行门现由 CLI、doctor、工具 dispatcher 共同拒绝非 `
 
 ### 24.17 有来源的操作候选与版本隔离（2026-10-22）
 
-在 `vertical-v2` 的 `1.0.9-vertical-experiment` 中，限定为经 AG0 哈希校验的 `SandboxManagerService::{SetPolicy,UnSetPolicy}` 源码行、唯一同命名空间 `PolicyInfoManager` 生产函数且参数个数一致时，生成 `status=suspect` 的操作候选。候选记录调用 factRef、目标函数 factRef、源码行与两侧文件哈希；歧义目标或漂移文件不给候选。AG0 调用边仍为 `name-only`/partial parse，因此候选**不是** `operationRef`，`operationTargetResolved=false`、`operation-target-unproven` 与 `operation-unbound` 缺口保留，不能提升 candidate 或授权效果裁决。问题级条件摘要将候选纳入依赖指纹；报告显示候选及其 suspect 等级；新版本 `check` 交叉检查分析 sidecar、纵向上下文源码文本、归档函数/文件/调用事实和仍未解析的调用边。旧版本 `check` 不重算该字段。
+在 `vertical-v2` 的 `1.0.9-vertical-experiment` 中，限定为经事实层哈希校验的 `SandboxManagerService::{SetPolicy,UnSetPolicy}` 源码行、唯一同命名空间 `PolicyInfoManager` 生产函数且参数个数一致时，生成 `status=suspect` 的操作候选。候选记录调用 factRef、目标函数 factRef、源码行与两侧文件哈希；歧义目标或漂移文件不给候选。该快照的调用边仍为 `name-only`/partial parse，因此候选**不是** `operationRef`，`operationTargetResolved=false`、`operation-target-unproven` 与 `operation-unbound` 缺口保留，不能提升 candidate 或授权效果裁决。问题级条件摘要将候选纳入依赖指纹；报告显示候选及其 suspect 等级；新版本 `check` 交叉检查分析 sidecar、纵向上下文源码文本、归档函数/文件/调用事实和仍未解析的调用边。旧版本 `check` 不重算该字段。
 
 Windows 原生 SetPolicyAsync 新版 off `RUN:94755e7b7546e61e`、基于已校验 1.0.8 live 的 replay `RUN:198750ed0b232051`；UnSetPolicyAsync 新版 off `RUN:db9ce5dd45350421`、replay `RUN:a977cf79f8e2dc45`。四条 run 的 `check` 均为 0 error / 0 warning，两个 replay 均为 0 远端请求；各入口 off/replay 与旧版报告语义哈希相同，均 0 candidate、0 finding。SetPolicy 操作候选指向 `policy_info_manager.cpp:516`，UnSetPolicy 指向该文件 561 行；这只是源码限定的可审查下一跳。歧义、目标源码漂移和候选篡改定向测试通过；全量 `node --test` 327/327，旧 gate 70/70。未再次请求 live，不能把旧 replay 当成本轮新模型能力实验。
 
@@ -1536,7 +1535,7 @@ Windows 原生的 1.0.10 UnSetPolicyAsync live `RUN:8bff1bd0ada1123f` 实际选�
 
 ### 24.19 第二轮评审前置建议的再验证与第二规范发布链（2026-10-22）
 
-重新核查 `REVIEW-ITERATION-2.md` §7.0 三件事并保持第 22-23 节的完整目标。第一项采纳为**当前静态试验边界**：`FINDINGS.md` 仍为空且说明原因，`verify` 返回 `blocked`、`executedCommands=[]`；不删除正式 finding/M6 验收。理由是用户要求的 M0-M6 完整纵向流程包含隔离验证，删除 M6 只能改变目标，不能证明目标可行。普通 Windows 子进程和 WSL 都不能冒充获批隔离 runner。
+当时再次核查前置建议，仍把 `verify=blocked` 和空 `FINDINGS.md` 当作该轮实验的静态边界；后续目标修订已允许有界静态 finding、Builder 审核和可选 M6。本段以下只记录当时的取舍，不覆盖现行合同。普通 Windows 子进程和 WSL 不自动构成隔离 runner。
 
 第二项采纳来源锚定、不同规范分离、发布与运行时重抽取；不采纳“AI 生成即可免人工审核发布”。字面权限句可确定性提取，增加生成模型调用不提高适用性可靠性；模型即使与运行模型不同，仍不能自行决定例外和异步适用性。现在 `knowledge propose --norm=UnSetPolicy --doc-set=sandbox-manager-pilot` 在 Windows 原生产出 `NORM:aa1295d063607f4d`、提案版本 `sha256:7b3da1d13142fa1ff4a34bba99d6cf5a463d798fd885b3cce52bb825f50615ff`，来源为 README 第 23 行及头文件哈希；`SetPolicy` 旧提案不变。第二规范已接通外部 Ed25519 签名审核、不可变发布、运行时重抽取与入口/规范匹配；测试用临时密钥证明错误签名、错误适用目标、源文漂移和错误入口均被拒。测试签名随后清理，**没有正式外部审核或第二条 accepted 知识版本**，`UnSetPolicyAsync` 仍为 `unknown`，M2 不能据此通过。模型提出新语义规范仍只能处于 `proposed`。
 
@@ -1569,5 +1568,37 @@ Windows 原生 off 试验：`SetPolicyAsync` 为 `RUN:c8f7bcf459912b89`，1 个�
 下一轮通用扫描版本 `1.0.16-static-scan` 对唯一绑定的 IDL 入口增设只读操作候选查询：仅在固定快照的服务函数行出现同命名空间 `PolicyInfoManager::GetInstance().Method(...)`、参数数目一致、唯一生产定义且源/目标文件均经哈希核对时，返回 `suspect` 与调用点、目标、文件哈希。精确一跳异步委托可复用同一限定查询。此结果使 `operation-unbound` 转为 `operation-target-unproven`，**不生成 resolved `operationRef`**、不单独产生 candidate/finding；入口源码截断/漂移给具名不足，目标歧义或目标文件漂移当前合并为未绑定，尚不能区分其具体原因。工具结果进入 Windows 原生账本及 `check` 复算，旧版本不迁移。
 
 Windows 原生 off `RUN:6c978126744791ee`：19 个入口、5 个抽样锚点、24 task、72 question、111 tool、0 模型请求；17 个 IDL 入口收到局部操作查询，其中 16 个返回单一 `suspect` 目标（含两条精确委托后的操作），余下一条未绑定。报告为 0 candidate / 24 observation / 0 finding，缺口中 `operation-target-unproven=16`、`operation-unbound=3`（含两条 SA 元数据入口）；不能将 16/17 当作精确调用目标解析率或漏洞发现率。新 run 与上一版 `RUN:66910fec73000320` 均 `check` 0 error / 0 warning；定向测试 50/50，全量 Windows 原生测试 341/341（仅测试进程临时设置嵌套 Git 的 `safe.directory=*`）。多规范任务级裁决、独立样本和四组对照仍未实现。
+
+### 24.22 全组件静态契约与多家族评测迭代（2026-10-23）
+
+`1.0.17-static-scan` 的目标是以固定 `sandbox_manager-pilot` 快照枚举真实入口，对唯一绑定的 IDL 方法逐一匹配已发布的 Builder 规范；区分 0 跳同步实现与唯一精确 1 跳异步委托，在哈希已核实、源码与调用枚举完整、单一源码限定操作候选的前提下判断文档权限错配、缺检查、检查不早退和合规早退。操作候选仍是有界静态证据，不升级为全局精确调用图。明确证明时，主问题的 Question、Assessment、Report 必须同向，任务记录操作目标；否则保留具名不足。覆盖抽样不能成为入口 finding，旧运行按各自版本只读复算。
+
+实验包含全组件 off 扫描、预算内代表性 live/replay、隔离的 Builder 来源多家族受控变异体和 A/B/C/D 诊断。评估必须分别列生产/变异体、正/反/不足样本及家族分母；Builder 标签不是独立人工真值，`independentAccuracy` 不能借同一 Builder 的标签伪称人工准确率。冷/热成本和未做的对照如实登记。
+
+**已实现与实测。** `knowledge.js` 载入两条不可变 Builder 发布版本，Persistence/Other 新审核记录 `K/reviews/sandbox-persistence-suite-builder.json` 对 14 个 IDL 方法逐一说明来源与例外；新版知识版本 `sha256:7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f`，SetPolicy 继续用 `sha256:050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c`。`--knowledge=<Set 文件>,<Other 文件>` 开启 `1.0.17-static-scan`；不提供时沿用 `1.0.16-static-scan`。索引缓存按快照、scope 内容和限额分隔；scope 限额现在作用于事实索引。新路径为 0/1 跳 IDL 增加已发布规范、权限实参和有界静态证明，任务的 `operationRef` 与 `static-contract` Question、Assessment、Report 同向。`check` 重取发布知识与源码、重新比较权限实参、证明和报告；旧 run 未迁移。
+
+Windows 原生全范围 off `RUN:ee5aead91034af9b`：固定快照 `sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e`，19 个入口（17 IDL、2 SA）加 5 个覆盖抽样，24 task / 105 question / 144 tool / 0 model，6 finding / 8 excluded / 0 candidate / 10 observation，语义哈希 `sha256:9b05a74030a61508c6af3c3a4850f3fdee8014393ab57ef31750fdb176f1e750`；`check` 0 error / 0 warning。生产 finding 家族为权限常量错配 3、文档要求的 `CheckPermission` 缺失 3。后三个入口实际另有 `IsFileManagerCalling` 或 `FOUNDATION_UID` 门，结论仅限文档权限契约差异，**不是无授权或可利用性证明**。`CheckPolicy` 的复杂条件与 `SetPolicyByBundleName` 的操作目标保持 observation / 具名不足；覆盖抽样不产生 finding。
+
+隔离的 `test/fixtures/autonomy/mutants/` 冻结 5 个 Builder 来源受控案例（错配、缺检查、检查不早退、合规、双操作歧义），来源、家族、预期与文件哈希在 `eval/autonomy/static-builder-mutants.json`。`tools/autonomy-static-eval.js --suite-run=RUN:ee5aead91034af9b --write` 的记录为 `out/autonomy/eval/RUN-ee5aead91034af9b.json`：5/5 与 Builder 标签一致，finding precision 3/3，受控样本枚举下的 positive recall 3/3，不足样本错误确定 0/1；`independentAccuracy=null`，生产精度/无种子召回均不可由此估计。确定性静态 A/B/C/D 消融在同 5 样本为 3/5、4/5、5/5、5/5，A 对歧义样本错误确定 1/1；模型请求 0，索引预处理约 346 ms，同进程冷/热评测约 16/15 ms。D 是程序整理的充分局部上下文，不是独立 oracle，也不是第 21.4 节所述同模型正式四组实验。
+
+授权内的多入口 live `RUN:6d9ee99d5e6749f7` 使用默认开源 `deepseek/deepseek-v4.1-flash`，24 task / 144 tool / 24 model ledger；供应商对全部请求返回 HTTP 401 `auth-failed`，**0 条有效模型响应**，没有可用的 live replay 源。报告的 6 finding / 8 excluded / 10 observation 来自确定性静态证明而非模型判断，语义哈希 `sha256:48e006be47ab79d0bddc67c3ea3c53e5b68a8765576469472938b53f7bab64a1`；失败 run 的 `check` 仍是 0 error / 0 warning。随后网关已改为首次认证失败即停止后续网络请求，并有直接测试；不改写该历史失败 run。Windows 原生全量测试 **346/346**，旧 `RUN:aee4f309acaa80e7` 与 `RUN:6c978126744791ee` 的 `check` 仍 0 error / 0 warning。
+
+**未验收：** 有效凭据下的 `1.0.17` 真实 live 与零请求 replay、同模型正式 A/B/C/D、独立于同一 Builder 的外部正确率、跨组件的无种子发现和任意动作恢复。`1.0.17` 的多入口规范调度与确定性取证已跑通，但 Runtime-LLM 当前只处理 check-presence，不能把 24 次失败调用或确定性消融当作完整自主规划有效性；M4/M5 保持未通过。动态 `verify` / M6 继续可选，不因此阻塞上述静态目标。
+
+后续复核发现 `1.0.17` replay 尚有两个接线缺口：归档源版本白名单未接受 `1.0.17-static-scan`，范围扫描的 replay 未执行 `check-presence` 模型判读。现已修复，并以 Windows 本机注入的**模拟传输层**运行 3 个任务、3 条成功响应的 live→replay 集成测试：replay 0 次传输/0 次请求、3 条归档调用、报告语义哈希相等，两 run 的 `check` 均无错误；测试 run 在结束时删除，不充当生产 run 或真实供应商记录。全量 Windows Node 测试更新为 **347/347**。当前进程无 `OH6_LLM_API_KEY`，未再发出真实请求；此前 HTTP 401 的 `RUN:6d9ee99d5e6749f7` 不能回放。真实 live/replay 与同模型 A/B/C/D 仍未验收。
+
+### 24.23 Windows 原生自治模型配置入口（2026-10-23）
+
+自治 Agent 可以由 `tools/autonomy-model.ps1` 管理独立的供应商 profile、模型和请求参数，并通过 `OH6_AUTONOMY_LLM_CONFIG` 仅覆盖本 Agent 的模型配置；未指定时继续使用相邻工具的共享 `llm.json`。本开发测试阶段优先可用性：`set-key` 交互输入一次，把对应供应商的密钥明文写到 Git 忽略的 `runtime/autonomy-model/keys/<provider>.key`；之后 `probe` 和 `run` 自动读取并仅向当次 Node 子进程注入 `OH6_LLM_API_KEY`，不再提示口令。此目录不是生产密钥库，能读取本机工作区的进程可读取该文件；不得提交或共享。`probe` 以当前 profile 走与审计一致的真实模型网关请求；live `run` 先通过探针再发审计请求。只记录 provider/model、探针状态、run ID、退出码和失败原因，不记录密钥及原始响应。既有每次 run 的 `maxModelRequests <= 30` 和 `sandbox_manager-pilot` 边界不变；该管理入口不把探针或模拟测试当作模型效果验收。
+
+上一版曾验证口令密钥库，但每次运行需交互且沙箱 DPAPI 不可用，按开发测试优先可用性的要求移除。明文密钥文件一次设置后的自动注入、供应商切换、请求头与失败台账已由临时目录中的假密钥测试覆盖；Windows 原生 `node --test` 为 **348/348**，`git diff --check` 通过，相关文本无 BOM 或 U+FFFD。运行记录固定 baseUrl 与不含密钥的 profile 摘要。当前尚未在此入口设置真实密钥，也未完成真实供应商探针或 live 验收。
+
+### 24.24 静态证明与 Runtime-LLM 分歧仲裁（2026-10-23）
+
+核查 §24.22 后采纳两条出口规则，但不直接读取不存在于范围扫描中的 `vertical.interpretation`：`1.0.17` 的 Runtime-LLM 仅回答 `check-presence`，此前不会改变静态证明的 `excluded`。新运行版本 `1.0.18-static-arbitration` 在已发布规范、唯一入口和源码限定操作的扫描中，将原来一次 `check-presence` 请求改为一次 `static-contract-review`，由原程序证据门校验枚举、引用和禁用声明；模型仅提供局部反例，不能自行产生 `finding`。
+
+当机械证明为 `excluded`，而经证据门接受的模型意见为 `refuted` 或 `conflict`，`static-contract` Question 与 Assessment 同置 `conflict`，登记 `prover-model-conflict`，报告降为 `candidate` 并保留模型反例理由。机械证明为 `insufficient` 时，仅在已校验的唯一操作目标存在，且检查未精确解析或模型提出经证据门接受的 `refuted` 意见时，以 `static-contract-suspect` 登记 `candidate`；无唯一目标、过期/截断或被证据门拒绝的模型输出不因模型意见升级。candidate 不等于 finding；`task.operationRef` 与报告候选操作保持一致。旧版本的报告复算规则不变，`1.0.18` 的 `check` 重取规范与源码、证明、归档模型意见和仲裁结果。
+
+Windows 原生测试使用固定快照与受控传输层分别覆盖 SetPolicy 的 `excluded -> conflict/candidate`、CheckPolicy 的 `insufficient -> candidate`，两者 live→replay 的语义哈希一致，复算均通过；无模型请求的 off run 也通过。全量 `node --test` **350/350**，历史 `RUN:ee5aead91034af9b` 的 `check` 为 0 error / 0 warning。当前 `commandcode` profile 的 `keyFilePresent=false`，没有发出真实供应商请求；这只验证仲裁机制及回放，不构成真实 Runtime-LLM 发现质量验收。
 
 本文的最终约束是：每个确定判断有可审查依据，每个未知都有具体含义，每次工具或模型调用都推进问题或合理停止；任何层都不能把缺少证据转写成证据。

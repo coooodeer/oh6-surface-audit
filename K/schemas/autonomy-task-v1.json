@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "autonomy task record",
-  "description": "AUTONOMY-MVP-GOAL-GUIDE §5.1 记录封套 + §5.4 Task。recordId 恒等于 payload.taskId。",
+  "description": "AGENT-ARCHITECTURE-GUIDE.md §5.4/§9.1 记录与 Task。recordId 恒等于 payload.taskId。",
   "type": "object",
   "required": ["recordId", "recordType", "schemaVersion", "manifestId", "createdAt", "producer", "dependencyRefs", "payload"],
   "additionalProperties": false,
@@ -30,6 +30,7 @@
         "taskId": { "type": "string", "pattern": "^TASK:[0-9a-f]{16}$" },
         "origin": { "type": "string", "enum": ["entry-scan", "coverage-sample", "analysis-branch"] },
         "anchorRefs": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^(ENT|F):" } },
+        "operationRef": { "type": "string", "pattern": "^F:" },
         "question": { "type": "string", "minLength": 8 },
         "state": { "type": "string", "enum": ["queued", "running", "done", "blocked", "failed"] },
         "questionRefs": { "type": "array", "items": { "type": "string", "pattern": "^Q:[0-9a-f]{16}$" } },
