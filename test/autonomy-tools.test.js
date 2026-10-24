@@ -46,12 +46,12 @@ function entryIdFor(method) {
   return e;
 }
 
-test('listTools：10 个 available + 4 个 unsupported，unsupported 都带具名 reason', () => {
+test('listTools：11 个 available + 4 个 unsupported，unsupported 都带具名 reason', () => {
   const list = tools.listTools();
   const avail = list.filter((t) => t.status === 'available').map((t) => t.name).sort();
   const un = list.filter((t) => t.status === 'unsupported');
   assert.deepStrictEqual(avail, [
-    'getApplicableNorms', 'getEvidence', 'getScopeOverview', 'inspectAuthorization', 'inspectDelegation', 'inspectEntry', 'inspectOperationCandidate', 'inspectPermissionArgument', 'inspectRelation', 'searchEntities'
+    'getApplicableNorms', 'getEvidence', 'getScopeOverview', 'inspectAuthorization', 'inspectDelegation', 'inspectEntry', 'inspectOperationCandidate', 'inspectPermissionArgument', 'inspectRelation', 'inspectStaticContract', 'searchEntities'
   ]);
   assert.strictEqual(un.length, 4);
   assert.deepStrictEqual(un.map((t) => t.name).sort(), [

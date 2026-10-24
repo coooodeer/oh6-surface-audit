@@ -18,6 +18,37 @@ function cleanup(dir) {
       /^RUN-[0-9a-f]{16}$/.test(path.basename(dir))) fs.rmSync(dir, { recursive: true, force: true });
 }
 
+test('static suite resumes with pinned knowledge and proof at a task boundary', () => {
+  const knowledge = [
+    'K/norms/050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c/knowledge.json',
+    'K/norms/7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f/knowledge.json'
+  ].join(',');
+  const args = ['--mode=off', '--scope=K/policies/autonomy-pilot-scope.json',
+    '--budget=K/policies/autonomy-pilot-budget.json'];
+  const clean = cli('run', ...args, '--knowledge=' + knowledge);
+  assert.equal(clean.status, 0, clean.stderr);
+  const cleanDir = path.resolve(root, JSON.parse(clean.stdout).runDir);
+  const crashed = spawnSync(process.execPath,
+    ['tools/fixtures/crash-after-vertical-task.js', '--static-suite'],
+    { cwd: root, encoding: 'utf8' });
+  assert.equal(crashed.status, 71, crashed.stderr);
+  const { runId, dir } = JSON.parse(crashed.stdout);
+  try {
+    const before = rows(path.join(dir, 'events.jsonl'));
+    assert.equal(before.at(-1).kind, 'task-finished');
+    assert.equal(Object.keys(JSON.parse(fs.readFileSync(path.join(dir, 'static-proofs.json'), 'utf8'))).length, 1);
+    const resumed = cli('resume', '--run=' + runId, ...args);
+    assert.equal(resumed.status, 0, resumed.stderr);
+    assert.equal(cli('check', '--run=' + runId).status, 0);
+    const expected = JSON.parse(fs.readFileSync(path.join(cleanDir, 'report-model.json'), 'utf8'));
+    const actual = JSON.parse(fs.readFileSync(path.join(dir, 'report-model.json'), 'utf8'));
+    assert.equal(actual.semanticHash, expected.semanticHash);
+    const events = rows(path.join(dir, 'events.jsonl'));
+    assert.equal(events.filter((ev) => ev.kind === 'summary-reused').length, 1);
+    assert.equal(events.filter((ev) => ev.kind === 'view-changed').length, 1);
+  } finally { cleanup(dir); cleanup(cleanDir); }
+});
+
 test('vertical-v2 resumes at the first tool intent and the committed task boundary', () => {
   const clean = cli('run', '--experiment=vertical-v2', '--mode=off',
     '--scope=K/policies/autonomy-pilot-scope.json', '--budget=K/policies/autonomy-pilot-budget.json',

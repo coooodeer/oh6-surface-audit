@@ -16,7 +16,7 @@
   "modelMetadata": {
     "interface": "OHOS.AccessControl.SandboxManager.ISandboxManager",
     "implOwnerSuffix": "SandboxManagerService",
-    "note": "IDL 方法 → 实现按 owner 段名 + 方法名匹配（MVP 只做名称/owner 匹配，不是 AG1 的完整绑定）"
+    "note": "IDL binding uses an exact owner segment and method name; ambiguity remains unresolved"
   },
   "binding": {
     "minNameLength": 3,

@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { main } = require('../bin/autonomy');
 const { ModelGateway } = require('../lib/autonomy/model');
 const { AUTONOMY_ROOT } = require('../lib/autonomy/store');
@@ -15,7 +16,7 @@ const knowledge = [
 const common = ['--scope=K/policies/autonomy-pilot-scope.json',
   '--budget=K/policies/autonomy-pilot-budget.json', `--knowledge=${knowledge}`, '--max-tasks=3'];
 
-test('1.0.17 multi-entry live responses replay without transport and pass source-backed check', async () => {
+test('1.0.19 multi-entry live responses replay and resume without transport', async () => {
   const originalCreate = ModelGateway.create;
   const originalWrite = process.stdout.write;
   const output = [];
@@ -26,7 +27,8 @@ test('1.0.17 multi-entry live responses replay without transport and pass source
     const gateway = originalCreate(options);
     if (options.mode === 'live') gateway._transport = {
       keyPresent: () => true,
-      send: async () => {
+      send: async ({ maxTokens }) => {
+        assert.equal(maxTokens, 4096);
         sends++;
         return { kind: 'ok', content: JSON.stringify({ decision: 'insufficient', evidenceRefs: [],
           rationale: 'Local test response.' }), usage: { promptTokens: 10, completionTokens: 10 },
@@ -53,6 +55,18 @@ test('1.0.17 multi-entry live responses replay without transport and pass source
     assert.equal(replay.executed.modelCalls, 3);
     assert.match(live.semanticHash, /^sha256:[0-9a-f]{64}$/);
     assert.equal(replay.semanticHash, live.semanticHash);
+    const crashed = spawnSync(process.execPath,
+      ['tools/fixtures/crash-after-vertical-task.js', '--static-suite', '--max-tasks=3', '--replay-run=' + live.runId],
+      { cwd: path.join(__dirname, '..'), encoding: 'utf8' });
+    assert.equal(crashed.status, 71, crashed.stderr);
+    const crashedRun = JSON.parse(crashed.stdout).runId;
+    runIds.push(crashedRun);
+    const resumed = await invoke(['resume', '--run=' + crashedRun, '--mode=replay',
+      '--scope=K/policies/autonomy-pilot-scope.json', '--budget=K/policies/autonomy-pilot-budget.json',
+      '--replay-run=' + live.runId]);
+    assert.equal(resumed.semanticHash, live.semanticHash);
+    assert.equal(resumed.executed.modelRequests, 0);
+    assert.equal(sends, 3);
     for (const runId of runIds) {
       const checked = await invoke(['check', `--run=${runId}`]);
       assert.deepEqual(checked.errors, []);

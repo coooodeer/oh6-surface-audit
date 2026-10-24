@@ -31,7 +31,7 @@
       "additionalProperties": false,
       "properties": {
         "runId": { "type": "string", "pattern": "^RUN:[0-9a-f]{16}$" },
-        "architectureVersion": { "type": "string", "enum": ["1.0.0-mvp", "1.0.1-auth-experiment", "1.0.2-auth-experiment", "1.0.3-vertical-experiment", "1.0.4-vertical-experiment", "1.0.5-vertical-experiment", "1.0.6-vertical-experiment", "1.0.7-vertical-experiment", "1.0.8-vertical-experiment", "1.0.9-vertical-experiment", "1.0.10-vertical-experiment", "1.0.11-vertical-experiment", "1.0.12-vertical-experiment", "1.0.13-vertical-experiment", "1.0.14-static-experiment", "1.0.15-static-scan", "1.0.16-static-scan", "1.0.17-static-scan", "1.0.18-static-arbitration"] },
+        "architectureVersion": { "type": "string", "enum": ["1.0.0-mvp", "1.0.1-auth-experiment", "1.0.2-auth-experiment", "1.0.3-vertical-experiment", "1.0.4-vertical-experiment", "1.0.5-vertical-experiment", "1.0.6-vertical-experiment", "1.0.7-vertical-experiment", "1.0.8-vertical-experiment", "1.0.9-vertical-experiment", "1.0.10-vertical-experiment", "1.0.11-vertical-experiment", "1.0.12-vertical-experiment", "1.0.13-vertical-experiment", "1.0.14-static-experiment", "1.0.15-static-scan", "1.0.16-static-scan", "1.0.17-static-scan", "1.0.18-static-arbitration", "1.0.19-autonomous-static"] },
         "schemaVersion": { "type": "string", "const": "1" },
         "inputManifestId": { "type": "string", "minLength": 3 },
         "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },

@@ -292,7 +292,7 @@ test('live 程序证据门：supported 降级、越界引用拒绝、禁用词�
   assert.strictEqual(badRef.extraMissing.length, 1);
   assert.strictEqual(badRef.extraMissing[0].reasonCode, 'model-output-invalid');
 
-  const forbidden = await liveGate({ decision: 'refuted', rationale: 'this is PROVEN-VULN', evidenceRefs: [] });
+  const forbidden = await liveGate({ decision: 'refuted', rationale: 'runtime-verified', evidenceRefs: [] });
   assert.strictEqual(forbidden.decision, 'insufficient');
   assert.match(forbidden.gate, /forbidden-token/);
 

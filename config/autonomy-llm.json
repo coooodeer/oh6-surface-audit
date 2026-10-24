@@ -1,0 +1,16 @@
+{
+  "baseUrl": "https://api.commandcode.ai/provider/v1",
+  "model": "deepseek/deepseek-v4.1-flash",
+  "apiKeyEnv": "OH6_LLM_API_KEY",
+  "responseFormat": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "agent_output",
+      "schema": { "type": "object", "additionalProperties": true }
+    }
+  },
+  "extraHeaders": { "x-cmd-zdr": "1" },
+  "requestExtra": {},
+  "timeoutMs": 120000,
+  "budgets": { "maxTokensPerRequest": 32768 }
+}

@@ -180,7 +180,57 @@ test('frozen Builder mutants remain separate from production runs and retain fiv
   assert.equal(result.sampleCount, 5);
   assert.equal(result.familyCount, 5);
   assert.equal(result.judgmentAccuracy, 1);
+  assert.equal(result.givenMutantFindingRecall, 1);
+  assert.equal(result.discoveryRecall, null);
   assert.equal(result.falseCertaintyRate, 0);
   assert.equal(result.independentAccuracy, null);
   assert.ok(result.rows.every((row) => row.source === 'controlled-mutant'));
+});
+
+test('model A/B/C/D uses one model and a shared 20-request budget across five families', async () => {
+  const labels = require('../eval/autonomy/static-builder-mutants.json').labels;
+  const expected = new Map(labels.map((row) => ['SRC:' + row.sha256.slice(0, 16), row.expected]));
+  const budget = { modelRequests: 0, policy: { maxModelRequests: 20 } };
+  const gateway = { mode: 'live', config: { model: 'test-open-model' }, budget,
+    keyPresent: () => true,
+    invoke: async (request) => {
+      budget.modelRequests++;
+      const sourceRef = JSON.parse(request.messages[1].content).sourceRef;
+      return { status: 'ok', model: 'test-open-model', callId: 'CALL:mock',
+        parsed: { verdict: expected.get(sourceRef), evidenceRefs: [sourceRef] },
+        contentSha256: 'a'.repeat(64), usage: { promptTokens: 10, completionTokens: 10 }, wallMs: 1 };
+    } };
+  const result = await staticEval.evaluateModelContrast(gateway);
+  assert.equal(result.rows.length, 20);
+  assert.equal(result.requests, 20);
+  assert.deepEqual(result.groups.map((group) => [group.total, group.correct]),
+    [[5, 5], [5, 5], [5, 5], [5, 5]]);
+  assert.equal(new Set(result.rows.map((row) => row.familyId)).size, 5);
+});
+
+test('proof summary reuses the shared service body and invalidates on norm or source drift', () => {
+  const facts = factsLib.AutonomyFacts.open({ snapshot: scope.snapshotId, scope });
+  const anchors = discovery.buildAnchors(facts, scope);
+  const knowledge = knowledgeLib.loadPublished(path.join(knowledgeLib.PUBLISHED_DIR,
+    knowledgeFiles.SetPolicyAsync, 'knowledge.json'), null, facts);
+  const cache = new Map();
+  let hits = 0;
+  const options = { includeNewFamilies: true, cache, onCacheHit: () => { hits++; } };
+  for (const method of ['SetPolicy', 'SetPolicyAsync']) {
+    const entry = anchors.entries.find((row) => row.kind === 'idl' && row.method === method);
+    const binding = discovery.resolveBinding(entry.entityId, { facts, scope, anchors: anchors.anchors });
+    const comparison = permission.compare(facts, entry, binding, knowledge);
+    assert.equal(proofLib.analyze(facts, entry, binding, knowledge, comparison, options).status, 'excluded');
+  }
+  assert.equal(hits, 1);
+  const entry = anchors.entries.find((row) => row.kind === 'idl' && row.method === 'SetPolicy');
+  const binding = discovery.resolveBinding(entry.entityId, { facts, scope, anchors: anchors.anchors });
+  const comparison = permission.compare(facts, entry, binding, knowledge);
+  const changed = { ...knowledge, norm: { ...knowledge.norm, reviewRef: 'REVIEW:changed' } };
+  proofLib.analyze(facts, entry, binding, changed, comparison, options);
+  assert.equal(hits, 1);
+  const stale = Object.create(facts);
+  stale.verifyFile = () => ({ ok: false });
+  assert.equal(proofLib.analyze(stale, entry, binding, knowledge, comparison, options).status, 'insufficient');
+  assert.equal(hits, 1);
 });

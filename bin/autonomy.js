@@ -271,10 +271,12 @@ async function cmdRun(opts) {
   if (!modelLib.MODES.includes(mode)) throw new CliError(`bad --mode: ${mode}`);
   const experiment = resuming ? created.detail.experiment : (opts.flags.experiment || null);
   const verticalExperiment = ['vertical-v1', 'vertical-v2'].includes(experiment);
-  if (resuming && (!verticalExperiment || !['off', 'replay'].includes(mode) ||
+  const resumingStaticSuite = resuming && created.detail.experiment === null &&
+    previousStore.run.payload.architectureVersion === '1.0.19-autonomous-static';
+  if (resuming && (!(verticalExperiment || resumingStaticSuite) || !['off', 'replay'].includes(mode) ||
       opts.flags['max-tasks'] !== undefined || opts.flags.task || opts.flags.model ||
       opts.flags['max-model-requests'] !== undefined)) {
-    throw new CliError('resume supports only a pinned vertical off/replay run and original budget');
+    throw new CliError('resume supports only a pinned vertical or static-suite off/replay run and original budget');
   }
   if (experiment && !((experiment === 'authorization-v1' && mode === 'off') ||
       (verticalExperiment && ['off', 'live', 'replay'].includes(mode)))) {
@@ -302,14 +304,17 @@ async function cmdRun(opts) {
     ? knowledgeLib.loadPersistenceAuthorization(facts) : knowledgeLib.loadAuthorization(facts)) : null;
   let staticSuite = null;
   if (opts.flags['knowledge-review']) throw new CliError('run requires a published --knowledge version; direct review is not a version');
-  if (opts.flags.knowledge) {
+  const knowledgeFiles = resumingStaticSuite ? previousStore.readJson('static-knowledge.json').versions
+    .map((version) => path.join(knowledgeLib.PUBLISHED_DIR, version.slice(7), 'knowledge.json'))
+    : opts.flags.knowledge?.split(',').map(resolvePath);
+  if (knowledgeFiles) {
     if (!verticalExperiment) {
       if (scope.scopeId !== 'sandbox_manager-pilot') throw new CliError('static suite requires sandbox_manager-pilot scope');
-      try { staticSuite = knowledgeLib.loadKnowledgeSuite(opts.flags.knowledge.split(',').map(resolvePath), facts); }
+      try { staticSuite = knowledgeLib.loadKnowledgeSuite(knowledgeFiles, facts); }
       catch (e) { throw new CliError(`knowledge suite rejected: ${e.message}`); }
     } else {
     try {
-      verticalKnowledge = knowledgeLib.loadPublished(resolvePath(opts.flags.knowledge),
+      verticalKnowledge = knowledgeLib.loadPublished(knowledgeFiles[0],
         opts.flags['review-public-key'] ? loadTrustedReviewKey(opts.flags['review-public-key']) : null, facts);
       if (experiment === 'vertical-v2' && !selectedTaskId) {
         const matches = anchorsInfo.entries.filter((entry) =>
@@ -355,7 +360,7 @@ async function cmdRun(opts) {
         [...replaySource.calls.values()].some((call) => call.finishReason !== 'stop')) {
       throw new CliError('replay source has an incomplete model response');
     }
-    if (staticSuite && replaySource.architectureVersion !== '1.0.18-static-arbitration') {
+    if (staticSuite && !['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(replaySource.architectureVersion)) {
       throw new CliError('static suite replay requires a matching live source');
     }
     if (experiment === 'vertical-v2' &&
@@ -431,7 +436,7 @@ async function cmdRun(opts) {
     capabilityProfile,
     budget: budgetPolicy,
     manifestId,
-      architectureVersion: staticSuite ? '1.0.18-static-arbitration' : experiment === 'vertical-v2' ? (verticalKnowledge?.norm?.authority === 'builder-llm-review'
+      architectureVersion: staticSuite ? '1.0.19-autonomous-static' : experiment === 'vertical-v2' ? (verticalKnowledge?.norm?.authority === 'builder-llm-review'
         ? '1.0.14-static-experiment' : '1.0.13-vertical-experiment')
         : experiment === 'vertical-v1' ? '1.0.5-vertical-experiment'
       : (experiment ? '1.0.2-auth-experiment' : '1.0.16-static-scan'),
@@ -467,7 +472,7 @@ async function cmdRun(opts) {
   const taskIds = new Set(plannedTasks.map((t) => t.taskId));
   const plannedQuestions = prepared ? prepared.records.question.map((row) => row.payload) :
     proposal.questions.filter((q) => taskIds.has(q.taskId));
-  if (staticSuite) {
+  if (staticSuite && !resuming) {
     for (const task of plannedTasks.filter((t) => t.origin === 'entry-scan')) {
       const anchor = anchorsInfo.anchors.get(task.anchorRefs[0]);
       if (anchor?.kind !== 'idl') continue;
@@ -612,12 +617,14 @@ async function cmdRun(opts) {
 
   const taskStateById = new Map(plannedTasks.map((t) => [t.taskId, { ...t }]));
   const summaryCache = new Map();
+  const proofCache = new Map();
+  const proofCacheOwner = new Map();
   const branchByTask = new Map(prepared?.branch ? [[prepared.branch.task.taskId, prepared.branch]] : []);
   const missingRecords = prepared ? prepared.records.missing : [];
   const assessmentRecords = prepared ? prepared.records.assessment : [];
   const contextRecords = prepared ? prepared.records.context : [];
   const detailById = new Map();
-  const staticProofs = {};
+  const staticProofs = prepared && staticSuite ? store.readJson('static-proofs.json') : {};
   for (const [entityId, a] of anchorsInfo.anchors) detailById.set(entityId, buildAnchorDetail(a));
 
   let stoppedReason = null;
@@ -677,9 +684,12 @@ async function cmdRun(opts) {
         const ctxRecord = retrieval.contextRecord(ctx, manifestId);
         contextRecords.push(ctxRecord);
         store.appendRecord('context', ctxRecord);
-        const miss = state.buildMissing({ questionId: q.questionId, reasonCode: 'input-parser-unproven',
+        const operationView = branch.view === 'operation-target';
+        const miss = state.buildMissing({ questionId: q.questionId,
+          reasonCode: operationView ? 'operation-semantics-unproven' : 'input-parser-unproven',
           targetRefs: [branch.callsite.ref, source.factRef],
-          nextActions: ['resolve-parser-call-target', 'approved-isolated-input-test'] });
+          nextActions: operationView ? ['inspect-source-and-contract'] :
+            ['resolve-parser-call-target', 'approved-isolated-input-test'] });
         const missRec = state.makeRecord({ recordId: miss.missingId, recordType: 'missing', manifestId,
           producer: state.PRODUCERS.assessment, dependencyRefs: [q.questionId, ...miss.targetRefs], payload: miss });
         missingRecords.push(missRec); store.appendRecord('missing', missRec);
@@ -691,7 +701,8 @@ async function cmdRun(opts) {
           snapshotId: facts.snapshotId, decision: 'insufficient', basis: 'derived',
           assurance: 'bounded-analysis', evidenceRefs: refs, missingRefs: [miss.missingId],
           contextId: ctx.contextId, modelCallRef: null,
-          rationale: 'Parser candidate retrieved by type hint; call target and adversarial input behavior remain unproven.' });
+          rationale: operationView ? 'Exact operation target retrieved; authorization semantics remain unproven in this child view.' :
+            'Parser candidate retrieved by type hint; call target and adversarial input behavior remain unproven.' });
         const aRec = state.makeRecord({ recordId: a.assessmentId, recordType: 'assessment', manifestId,
           producer: state.PRODUCERS.assessment, dependencyRefs: [task.taskId, q.questionId, ...refs], payload: a });
         assessmentRecords.push(aRec); store.appendRecord('assessment', aRec);
@@ -724,13 +735,18 @@ async function cmdRun(opts) {
       }
       const direct = await pushResult('inspectAuthorization', { entryRef }, checkQ ? checkQ.questionId : null);
       if ((experiment === 'authorization-v1' ||
-          ['1.0.15-static-scan', '1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration'].includes(store.run.payload.architectureVersion)) &&
+          ['1.0.15-static-scan', '1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion)) &&
           task.origin === 'entry-scan' && binding.binding === 'resolved' &&
           direct.payload.status === 'ok' && direct.payload.answer.status === 'refuted') {
-        await pushResult('inspectDelegation', { entryRef }, checkQ ? checkQ.questionId : null);
+        if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') store.appendEvent({ kind: 'gap-opened', taskId: task.taskId,
+          detail: { reasonCode: 'direct-check-absent', tool: 'inspectDelegation', questionId: checkQ?.questionId } });
+        const delegated = await pushResult('inspectDelegation', { entryRef }, checkQ ? checkQ.questionId : null);
+        if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') store.appendEvent({ kind: 'gap-closed', taskId: task.taskId,
+          detail: { reasonCode: 'direct-check-absent', resultId: delegated.recordId,
+            status: delegated.payload.answer?.status || delegated.payload.status } });
       }
       const relQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'dominance');
-      if (['1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration'].includes(store.run.payload.architectureVersion) &&
+      if (['1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion) &&
           task.origin === 'entry-scan' && anchor?.kind === 'idl' && binding.binding === 'resolved') {
         await pushResult('inspectOperationCandidate', { entryRef }, relQ?.questionId);
       }
@@ -738,12 +754,31 @@ async function cmdRun(opts) {
       let suiteProof = null;
       if (staticSuite && contractQ) {
         if (suitePermissionQ && binding.binding === 'resolved') {
+          store.appendEvent({ kind: 'gap-opened', taskId: task.taskId,
+            detail: { reasonCode: 'permission-argument-unresolved', tool: 'inspectPermissionArgument',
+              questionId: suitePermissionQ.questionId } });
           const compared = await pushResult('inspectPermissionArgument', { entryRef }, suitePermissionQ.questionId);
           suiteComparison = compared.payload.observations;
+          store.appendEvent({ kind: 'gap-closed', taskId: task.taskId,
+            detail: { reasonCode: 'permission-argument-unresolved', resultId: compared.recordId,
+              status: suiteComparison?.status || compared.payload.status } });
         }
-        suiteProof = staticProofLib.analyze(facts, anchor, binding, taskCtx.knowledge,
-          suiteComparison, { includeNewFamilies: true,
-            includeCandidateContext: store.run.payload.architectureVersion === '1.0.18-static-arbitration' });
+        if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') {
+          taskCtx.comparison = suiteComparison;
+          taskCtx.proofCache = proofCache;
+          taskCtx.onProofCacheHit = (key) => store.appendEvent({ kind: 'summary-reused',
+            taskId: task.taskId, detail: { sourceTaskId: proofCacheOwner.get(key),
+              fingerprint: ids.sha256Hex(key) } });
+          const answered = await pushResult('inspectStaticContract', { entryRef }, contractQ.questionId);
+          suiteProof = answered.payload.observations;
+        } else {
+          suiteProof = staticProofLib.analyze(facts, anchor, binding, taskCtx.knowledge,
+            suiteComparison, { includeNewFamilies: true,
+              includeCandidateContext: store.run.payload.architectureVersion === '1.0.18-static-arbitration' });
+        }
+        for (const [key, proof] of proofCache) {
+          if (proof === suiteProof && !proofCacheOwner.has(key)) proofCacheOwner.set(key, task.taskId);
+        }
         staticProofs[task.taskId] = suiteProof;
         if (suiteProof.operationRef) task.operationRef = suiteProof.operationRef;
       }
@@ -759,8 +794,11 @@ async function cmdRun(opts) {
             verticalKnowledge, vertical.permissionArgument);
         }
         store.writeJson('vertical-analysis.json', vertical);
-        const branch = branchLib.proposeInputBoundary(vertical, task, facts);
-        if (branch && (!maxTasks || plannedTasks.length < maxTasks) &&
+      }
+      const branch = vertical ? branchLib.proposeInputBoundary(vertical, task, facts) :
+        (staticSuite && !onlyTask && !branchByTask.size ? branchLib.proposeOperationView(suiteProof, task, facts) : null);
+      if (branch) {
+        if ((!maxTasks || plannedTasks.length < maxTasks) &&
             (!budgetMaxTasks || plannedTasks.length < budgetMaxTasks)) {
           plannedTasks.push(branch.task); plannedQuestions.push(branch.question);
           branchByTask.set(branch.task.taskId, branch);
@@ -770,12 +808,12 @@ async function cmdRun(opts) {
           questionRecords.push(state.makeRecord({ recordId: branch.question.questionId, recordType: 'question',
             manifestId, producer: state.PRODUCERS.discovery, dependencyRefs: [branch.task.taskId], payload: branch.question }));
           store.writeRecords('task', taskRecords); store.writeRecords('question', questionRecords);
-          store.writeJson('vertical-branch.json', branch);
+          store.writeJson(staticSuite ? 'analysis-branch.json' : 'vertical-branch.json', branch);
           store.appendEvent({ kind: 'view-changed', taskId: task.taskId,
             detail: { view: branch.view, childTaskId: branch.task.taskId, callsite: branch.callsite.ref } });
           store.appendEvent({ kind: 'task-admitted', taskId: branch.task.taskId, to: 'queued',
             detail: { origin: branch.task.origin, parentTaskId: task.taskId, view: branch.view } });
-        } else if (branch) {
+        } else {
           store.appendEvent({ kind: 'branch-rejected', taskId: task.taskId,
             detail: { reason: 'maxTasks', view: branch.view } });
         }
@@ -803,7 +841,7 @@ async function cmdRun(opts) {
       const taskQuestions = plannedQuestions.filter((q) => q.taskId === task.taskId);
       let liveCheck = null;
       let liveReview = null;
-      if (store.run.payload.architectureVersion === '1.0.18-static-arbitration' &&
+      if (['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion) &&
           ['live', 'mock', 'replay'].includes(mode) && contractQ && !verticalExperiment) {
         const allowed = new Set([...results.map((r) => r.recordId), ...contextRecords.map((c) => c.recordId)]);
         liveReview = await assessment.adjudicateLiveCheck({ gateway, task, purpose: 'static-contract-review',
@@ -811,7 +849,7 @@ async function cmdRun(opts) {
           contextText: retrieval.renderForModel(context) + '\n' + JSON.stringify({
             norm: taskCtx.knowledge?.norm || null, staticProof: suiteProof,
             permissionComparison: suiteComparison
-          }), maxTokens: 1200 });
+          }), maxTokens: 4096 });
       }
       const off = assessment.adjudicateOff({
         task,
@@ -824,7 +862,7 @@ async function cmdRun(opts) {
           .includes(store.run.payload.architectureVersion) ? 'static-scan' : null)
       });
       if (contractQ) {
-        const arbitration = store.run.payload.architectureVersion === '1.0.18-static-arbitration'
+        const arbitration = ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion)
           ? assessment.arbitrateStaticContract(suiteProof, liveReview) : null;
         const decision = arbitration?.decision || (suiteProof?.status === 'finding' ? 'refuted' :
           suiteProof?.status === 'excluded' ? 'supported' : 'insufficient');
@@ -839,7 +877,7 @@ async function cmdRun(opts) {
         }) : null;
         if (miss) off.extraMissing.push(miss);
         const refs = results.filter((row) => ['getApplicableNorms', 'inspectOperationCandidate',
-          'inspectPermissionArgument'].includes(row.payload.tool)).map((row) => row.recordId);
+          'inspectPermissionArgument', 'inspectStaticContract'].includes(row.payload.tool)).map((row) => row.recordId);
         off.updates.push({ questionId: contractQ.questionId, status: decision,
           basis: arbitration?.modelCallRef ? 'mixed' : 'derived',
           assurance: 'bounded-analysis', evidenceRefs: refs, missingRefs: miss ? [miss.missingId] : [] });
@@ -923,7 +961,7 @@ async function cmdRun(opts) {
         }));
       }
 
-      if (store.run.payload.architectureVersion !== '1.0.18-static-arbitration' &&
+      if (!['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion) &&
           ['live', 'mock', 'replay'].includes(mode) && checkQ && !verticalExperiment) {
         const allowed = new Set([...results.map((r) => r.recordId), ...contextRecords.map((c) => c.recordId)]);
         liveCheck = await assessment.adjudicateLiveCheck({
@@ -1026,6 +1064,7 @@ async function cmdRun(opts) {
 
       store.writeRecords('task', taskRecords);
       store.writeRecords('question', questionRecords);
+      if (staticSuite) store.writeJson('static-proofs.json', staticProofs);
       store.appendEvent({
         kind: 'task-finished',
         taskId: task.taskId,
@@ -1323,17 +1362,16 @@ function cmdCheck(opts) {
     for (const m of a.payload.missingRefs) if (!missingIds.has(m)) add('dangling-ref', `assessment ${a.recordId} -> missing ${m}`);
     if (a.payload.scope.snapshotId !== snapshotId) add('snapshot-mismatch', `assessment ${a.recordId}`);
     if (!assessment.DECISIONS.includes(a.payload.decision)) add('bad-enum', `assessment ${a.recordId} decision=${a.payload.decision}`);
-    // 禁用词按**词元**匹配：'T1' 不能命中时间戳里的 'T17'
     const blob = JSON.stringify(a.payload);
-    if (/PROVEN[-_]VULN/i.test(blob)) add('forbidden-token', `assessment ${a.recordId} contains PROVEN-VULN`);
-    if (/(?:^|[^A-Za-z0-9_-])T1(?:[^A-Za-z0-9_-]|$)/.test(blob)) add('forbidden-token', `assessment ${a.recordId} contains T1`);
+    const forbidden = assessment.FORBIDDEN_TOKENS.find((token) => blob.includes(token));
+    if (forbidden) add('forbidden-token', 'assessment contains unsupported certainty claim');
   }
   for (const r of reportRows) {
     if (!taskIds.has(r.payload.taskId)) add('dangling-ref', `report ${r.recordId} -> task ${r.payload.taskId}`);
     if (r.payload.snapshotId !== snapshotId) add('snapshot-mismatch', `report ${r.recordId}`);
     if (!['candidate', 'observation', 'excluded', 'finding'].includes(r.payload.reportability)) add('bad-enum', `report ${r.recordId}`);
     if (r.payload.reportability === 'finding' &&
-        (!['1.0.14-static-experiment', '1.0.17-static-scan', '1.0.18-static-arbitration'].includes(runRecord.payload.architectureVersion) ||
+        (!['1.0.14-static-experiment', '1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) ||
           r.payload.verificationStatus !== 'static-only')) add('finding-not-allowed', `report ${r.recordId}`);
     for (const e of r.payload.evidenceRefs) if (!toolIds.has(e)) add('dangling-ref', `report ${r.recordId} -> evidence ${e}`);
   }
@@ -1369,7 +1407,7 @@ function cmdCheck(opts) {
 
   // report-model 一致性（语义哈希可复算）
   let staticProofs = null;
-  if (['1.0.17-static-scan', '1.0.18-static-arbitration'].includes(runRecord.payload.architectureVersion)) {
+  if (['1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)) {
     try {
       const pin = JSON.parse(fs.readFileSync(path.join(dir, 'static-knowledge.json'), 'utf8'));
       staticProofs = JSON.parse(fs.readFileSync(path.join(dir, 'static-proofs.json'), 'utf8'));
@@ -1388,14 +1426,22 @@ function cmdCheck(opts) {
         const comparison = knowledge && permissionArgumentLib.compare(facts, entry, binding, knowledge);
         const proof = staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
           { includeNewFamilies: true,
-            includeCandidateContext: runRecord.payload.architectureVersion === '1.0.18-static-arbitration' });
+            includeCandidateContext: ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) });
         if (ids.canonicalJson(proof) !== ids.canonicalJson(staticProofs[task.recordId])) {
           add('static-proof-drift', task.recordId);
+        }
+        if (runRecord.payload.architectureVersion === '1.0.19-autonomous-static') {
+          const answer = toolResults.find((row) => row.payload.tool === 'inspectStaticContract' &&
+            row.payload.questionId === questions.find((q) => q.payload.taskId === task.recordId &&
+              q.payload.kind === 'static-contract')?.recordId);
+          if (answer && ids.canonicalJson(answer.payload.observations) !== ids.canonicalJson(proof)) {
+            add('static-tool-answer-drift', task.recordId);
+          }
         }
         const contract = questions.find((q) => q.payload.taskId === task.recordId && q.payload.kind === 'static-contract');
         const contractAssessment = assessments.find((a) => a.payload.questionId === contract?.recordId)?.payload;
         let modelReview = null;
-        if (runRecord.payload.architectureVersion === '1.0.18-static-arbitration') {
+        if (['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)) {
           const callDir = path.join(dir, 'model-calls');
           const calls = fs.existsSync(callDir) ? fs.readdirSync(callDir) : [];
           const review = calls.map((file) => JSON.parse(fs.readFileSync(path.join(dir, 'model-calls', file), 'utf8')))
@@ -1410,7 +1456,7 @@ function cmdCheck(opts) {
               rationale: String(review.parsed.rationale || '').slice(0, 400), modelCallRef: review.callId };
           }
         }
-        const arbitration = runRecord.payload.architectureVersion === '1.0.18-static-arbitration'
+        const arbitration = ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)
           ? assessment.arbitrateStaticContract(proof, modelReview) : null;
         const verdict = arbitration?.decision || (proof.status === 'finding' ? 'refuted' :
           proof.status === 'excluded' ? 'supported' : 'insufficient');
@@ -1434,6 +1480,80 @@ function cmdCheck(opts) {
       }
     } catch (e) { add('static-suite-drift', e.message); }
   }
+  if (runRecord.payload.architectureVersion === '1.0.19-autonomous-static') {
+    const events = evRes.rows;
+    const gaps = events.filter((ev) => ev.kind === 'gap-opened');
+    const closed = events.filter((ev) => ev.kind === 'gap-closed');
+    if (gaps.length !== closed.length) add('gap-trace-drift', 'open/closed count differs');
+    for (const gap of gaps) {
+      const match = closed.find((ev) => ev.taskId === gap.taskId && ev.seq > gap.seq &&
+        ev.detail.reasonCode === gap.detail.reasonCode);
+      const result = toolResults.find((row) => row.recordId === match?.detail.resultId);
+      const intent = events.find((ev) => ev.kind === 'tool-intent' && ev.taskId === gap.taskId &&
+        ev.seq > gap.seq && ev.seq < match?.seq && ev.detail.tool === gap.detail.tool &&
+        ev.detail.questionId === gap.detail.questionId);
+      const completion = events.find((ev) => ev.kind === 'tool-completed' &&
+        ev.detail.resultId === result?.recordId && ev.seq > intent?.seq && ev.seq < match?.seq);
+      if (!match || !result || !intent || !completion ||
+          result.payload.tool !== gap.detail.tool || result.payload.questionId !== gap.detail.questionId ||
+          match.detail.status !== (result.payload.observations?.status || result.payload.answer?.status || result.payload.status)) {
+        add('gap-trace-drift', gap.actionId);
+      }
+    }
+    try {
+      const scope = loadScope(DEFAULT_SCOPE);
+      const facts = openFacts(scope, snapshotId);
+      const pin = JSON.parse(fs.readFileSync(path.join(dir, 'static-knowledge.json'), 'utf8'));
+      const suite = knowledgeLib.loadKnowledgeSuite(pin.versions.map((v) =>
+        path.join(knowledgeLib.PUBLISHED_DIR, v.slice(7), 'knowledge.json')), facts);
+      const anchors = discovery.buildAnchors(facts, scope);
+      const cache = new Map();
+      const owner = new Map();
+      const expected = [];
+      for (const ev of events) {
+        if (ev.kind === 'run-resumed') { cache.clear(); owner.clear(); }
+        if (ev.kind !== 'task-started') continue;
+        const task = tasks.find((row) => row.recordId === ev.taskId);
+        if (task?.payload.origin !== 'entry-scan') continue;
+        const entry = anchors.anchors.get(task.payload.anchorRefs[0]);
+        if (entry?.kind !== 'idl') continue;
+        const binding = discovery.resolveBinding(entry.entityId, { facts, scope, anchors: anchors.anchors });
+        const knowledge = suite.byMethod.get(entry.method);
+        const comparison = knowledge && binding.binding === 'resolved'
+          ? permissionArgumentLib.compare(facts, entry, binding, knowledge) : null;
+        const proof = staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
+          { includeNewFamilies: true, includeCandidateContext: true, cache,
+            onCacheHit: (key) => expected.push({ taskId: ev.taskId,
+              sourceTaskId: owner.get(key), fingerprint: ids.sha256Hex(key) }) });
+        for (const [key, value] of cache) {
+          if (value === proof && !owner.has(key)) owner.set(key, ev.taskId);
+        }
+      }
+      const actual = events.filter((ev) => ev.kind === 'summary-reused')
+        .map((ev) => ({ taskId: ev.taskId, ...ev.detail }));
+      if (ids.canonicalJson(expected) !== ids.canonicalJson(actual)) {
+        add('summary-trace-drift', 'recomputed cache hits differ');
+      }
+    } catch (e) { add('summary-trace-drift', e.message); }
+    const branchFile = path.join(dir, 'analysis-branch.json');
+    const branches = events.filter((ev) => ev.kind === 'view-changed' && ev.detail.view === 'operation-target');
+    if (branches.length !== (fs.existsSync(branchFile) ? 1 : 0)) add('branch-trace-drift', 'branch count');
+    if (fs.existsSync(branchFile)) {
+      const branch = JSON.parse(fs.readFileSync(branchFile, 'utf8'));
+      const event = branches[0];
+      const child = tasks.find((row) => row.recordId === branch.task.taskId);
+      const question = questions.find((row) => row.recordId === branch.question.questionId);
+      if (!event || event.taskId !== branch.parentTaskId ||
+          event.detail.childTaskId !== branch.task.taskId || event.detail.callsite !== branch.callsite.ref ||
+          branch.callsite.ref !== staticProofs?.[branch.parentTaskId]?.operationCallRef ||
+          branch.candidate.factRef !== staticProofs?.[branch.parentTaskId]?.operationRef ||
+          !child || child.payload.origin !== 'analysis-branch' ||
+          !question || question.payload.taskId !== child.recordId ||
+          question.payload.status !== 'insufficient' || staticProofs[child.recordId]) {
+        add('branch-trace-drift', branch.task.taskId);
+      }
+    }
+  }
   const rebuilt = reportLib.buildReportModel({
     tasks,
     questions,
@@ -1450,7 +1570,7 @@ function cmdCheck(opts) {
     '1.0.9-vertical-experiment', '1.0.10-vertical-experiment',
     '1.0.11-vertical-experiment', '1.0.12-vertical-experiment',
     '1.0.13-vertical-experiment', '1.0.14-static-experiment', '1.0.17-static-scan',
-    '1.0.18-static-arbitration'].includes(runRecord.payload.architectureVersion) &&
+    '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) &&
       ids.canonicalJson(reportRows.map((row) => row.payload).sort((a, b) => a.reportId.localeCompare(b.reportId))) !==
       ids.canonicalJson(rebuilt.rows)) {
     add('report-model-drift', 'report rows differ from assessments');

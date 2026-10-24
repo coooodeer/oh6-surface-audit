@@ -32,7 +32,7 @@
       "properties": {
         "questionId": { "type": "string", "pattern": "^Q:[0-9a-f]{16}$" },
         "taskId": { "type": "string", "pattern": "^TASK:[0-9a-f]{16}$" },
-        "kind": { "type": "string", "enum": ["binding", "check-presence", "dominance", "authorization-effect", "permission-argument-match", "static-contract", "static-permission-match", "input-boundary-local"] },
+        "kind": { "type": "string", "enum": ["binding", "check-presence", "dominance", "authorization-effect", "permission-argument-match", "static-contract", "static-permission-match", "input-boundary-local", "operation-local"] },
         "proposition": { "type": "string", "minLength": 4 },
         "polarity": { "type": "string", "enum": ["exists", "forall"] },
         "status": { "type": "string", "enum": ["unknown", "supported", "refuted", "insufficient", "conflict"] },

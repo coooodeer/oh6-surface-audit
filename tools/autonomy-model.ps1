@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0, Mandatory = $true)]
-    [ValidateSet('show', 'configure', 'use', 'set-key', 'remove-key', 'validate-key', 'probe', 'run')]
+    [ValidateSet('show', 'configure', 'use', 'set-key', 'remove-key', 'validate-key', 'probe', 'run', 'eval')]
     [string]$Action,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Options,

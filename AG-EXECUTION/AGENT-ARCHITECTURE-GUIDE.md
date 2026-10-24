@@ -110,7 +110,7 @@
 
 ## 3. 当前实现与可复用边界
 
-当前实现以 `bin/autonomy.js`、`lib/autonomy/`、`K/`、`test/autonomy-*.test.js` 为准。事实层 `lib/facts/` 与 `out/facts/<snapshotId>/` 只读复用；其稳定 ID 与哈希按实际 schema 和源码校验，不依赖旧阶段设计文档。以下旧组件只提供事实或运输能力，不引入其编排或裁决规则。开发前运行环境检查，不能把历史测试数量当作当前结果。
+当前实现以 `bin/autonomy.js`、`lib/autonomy/`、`K/`、`test/autonomy-*.test.js` 为准。事实层 `lib/facts/` 与 `out/facts/<snapshotId>/` 只读复用；其稳定 ID 与哈希按实际 schema 和源码校验。下表的数据层与本项目 HTTP 传输服务当前 Agent，不引入其他流程的编排或裁决规则。开发前运行环境检查，不能把历史测试数量当作当前结果。
 
 | 位置 | 现有能力 | 接入要求 |
 |---|---|---|
@@ -120,7 +120,7 @@
 | `lib/facts/query.js` | 名称、语法、调用记录、源码、类型和检查点查询 | 不是完整语义查询服务，必须经过适配器 |
 | `lib/facts/cfg.js`、`dfg.js` | 局部结构和粗粒度 def-use | 可作线索，不能宣称完整路径和别名分析 |
 | `lib/facts/ids.js`、`manifest.js`、`schema.js` | 标识、清单和事实格式校验 | 新记录使用独立 schema，不覆写已有事实 |
-| 相邻工具的 `src/llm/http.js` | HTTP 运输、usage、错误和请求描述 | 通过薄网关接入，验证取消、超时和脱敏 |
+| `lib/autonomy/http.js`、`config/autonomy-llm.json` | 本项目 HTTP 运输、usage、具名错误与默认 profile | 由 `ModelGateway` 调用，doctor 与 live 使用同一配置选择规则 |
 
 2026-10-22 的 `1.0.0-mvp` 试点闭环：固定 binding/check-presence/dominance 三问，off 模式在 sandbox_manager 上运行 24 个任务、产出 7 个 candidate 和 0 个 finding。它不是第 12-14 节规定的自主提案、跨视图 Action 闭环；当时正式规范、派生答案、精确入口绑定与运行验证尚未实现。7 个 candidate 中 5 个来自非入口覆盖抽样，另 2 个为委托检查包装；该试点没有独立标注指标。原始产物见 `AG-EXECUTION/AUTONOMY-RESULT.md` 和 `eval/autonomy/pilot-summary.json`。这是历史状态，不是当前实现清单；后续实验与仍未验收项见第 24.22-24.24 节，不能将流程测试通过等同于审计有效性。
 
@@ -128,7 +128,7 @@
 
 后续 `vertical-v1` 的真实 live、跨视图分支、模型账本和验证计划实验见第 24.5 节。实验版本号 `1.0.5-vertical-experiment` 是 run 标识，不代表本文规范版本，也不代表 M0-M6 已全部验收。
 
-截至 §24.24，`1.0.18-static-arbitration` 在固定的 `sandbox_manager-pilot` 范围支持 19 入口加 5 抽样任务的扫描、两条 Builder 规范、0/1 跳有界证明、静态 finding/excluded 与模型分歧仲裁。全范围 off run 为 6 finding / 8 excluded / 10 observation；受控模拟传输的 live→replay 通过，真实供应商 live 与同模型 A/B/C/D 尚未验收。没有跨组件无种子召回或独立真值结论，M6 仍可选。历史步骤与 run ID 见 §24.20-24.24。
+截至 §24.27，`1.0.19-autonomous-static` 在固定的 `sandbox_manager-pilot` 范围完成 19 入口、5 抽样和 1 子视图的真实供应商 live→零请求 replay→check：6 finding / 8 excluded / 11 observation，17 次模型调用均成功，语义哈希一致。五家族受控变异体给定样本判定 5/5；同模型 A/B/C/D 因传输超时未完成，独立真值和跨组件无种子召回均未评估。此结果证明有界静态工程闭环可运行，不证明全架构的效果优势；M6 仍可选。
 
 必须先处理的事实接入问题：
 
@@ -876,9 +876,9 @@ async function runAudit(run) {
 
 ### 14.1 模型接入
 
-拟新增 `modelGateway.invoke({purpose, contextId, messages, maxTokens, requestId, signal})`，复用相邻 `oh6-vuln-agent/src/llm/http.js` 的运输能力和既有 `config/llm.json` 配置约定。默认密钥环境变量为 `OH6_LLM_API_KEY`；若配置指定其他变量，显式记录变量名而不是值。
+当前 `ModelGateway.invoke({purpose, contextId, messages, maxTokens, requestId})` 使用本项目的 `lib/autonomy/http.js` 与 `config/autonomy-llm.json`。已选择的 profile 存于 `runtime/autonomy-model/active.json`；CLI、doctor 与供应商管理器使用同一配置选择规则。`OH6_AUTONOMY_LLM_CONFIG` 可显式覆盖，密钥仍从配置指定的环境变量（默认 `OH6_LLM_API_KEY`）读取，不记录密钥值。
 
-不要复制 endpoint、模型名称或价目。模型选择由受控配置决定，首次使用记录供应商、实际模型标识、请求参数、能力验证结果和数据策略。缺配置或密钥时 live 明确失败，不自动换供应商或降为模拟。
+模型端点和型号只在当前 Agent 的默认配置或已选 profile 中维护，不在裁决代码中复制；价格没有写死。首次使用记录供应商、实际模型标识、请求参数、能力验证结果和数据策略。缺配置或密钥时 live 明确失败，不自动换供应商或降为模拟。
 
 第一版通过模型 JSON 内容表达 Action，复用现有 content 运输路径。原生 tool_calls、流式增量解析或其他协议只有在往返、取消、错误和账本测试完成后才启用。
 
@@ -1300,7 +1300,7 @@ M0-M5 是静态主流程的验收阶段，M6 为可选扩展，不等同于已�
 | M2 领域知识 | 小文档集、实体链接、Builder-LLM 来源审批与发布、general/authorization 视图 | M1 | 适用/例外/冲突样例通过，Runtime-LLM 不自批准 |
 | M3 问题级答案 | inspectAuthorization、需求图、ContextPacket、条件摘要和反证配方 | M1、M2 | 一次调用能回答局部问题或给明确下一步；错误主体/对象不误判 |
 | M4 自主闭环 | discovery、队列、控制器、off/mock/replay、事件与报告 | M3 | 不给 claim 可起步，覆盖抽样不污染入口 candidate，跨方向继续、分支共享和正确停止 |
-| M5 小规模 live | 开源非 pro 模型能力确认、预算/外发门、Builder 来源冻结评估与四组对照 | M4、冻结评估集 | 静态发现、误报/漏报与成本实测，失败原因可归因 |
+| M5 小规模 live 与后续效果评估 | 已授权模型能力确认、预算/外发门、Builder 来源冻结评估；四组真实对照属于后续完整效果验收 | M4、冻结评估集 | 最小闭环需可复算的静态发现与 live/replay；效果结论另需误报/漏报、成本与失败归因 |
 | M6 可选验证与扩展 | 隔离 runner、第二问题视图、按需精确分析、可选 MCP | M5 | 启用时有正反例、权限和回归证据；未启用不阻断静态闭环 |
 
 M0-M4 只做完成纵向流程所需的最小覆盖，不建设全量规则库或全部高级分析器。第一条闭环用 mock/replay 验证协议，但不能据此声称真实模型审计有效。M5 不承诺必须发现新的生产漏洞。
@@ -1311,35 +1311,35 @@ M0-M4 只做完成纵向流程所需的最小覆盖，不建设全量规则库�
 
 若代码偏离本文，先明确偏离属于实现缺陷、规范缺口还是合理变更，不能在注释或其他文档中悄悄建立第二套合同。
 
-### 22.3 与既有实现共存
+### 22.3 数据层复用边界
 
-首版通过独立 `bin/autonomy.js` 和新产物目录运行，不改变 `bin/agent.js` 的既有默认行为。已有事实只读复用；旧候选、tier、prover 结果和 live 调用只能作为显式标记的对照输入，不能直接成为新事实或缺口填充值。
+当前 Agent 的唯一运行入口是 `bin/autonomy.js`。固定事实快照、事实 schema 和通用解析工具可只读复用；它们不能提供裁决等级、调度流程或模型配置。历史结果只能作为明确标注来源的对照数据，不进入当前报告和评估分母。
 
-确需兼容旧报告时增加命名 adapter，声明它支持的命题、前提和字段映射。旧 S/T/O 编号不是新系统的内部状态；无明确映射的情况保留 unknown 或独立结果，不能把自由文本“支持”直接映射为旧 confirmed。
+### 22.4 配置变更与回退
 
-### 22.4 切换条件与回退
-
-切换默认入口前必须同时具备：M5 的 Builder 来源评估及局限记录、真实 off/replay/live 模式隔离、scope-only 轨迹、缓存失效和恢复轨迹、旧接口必要回归、报告可回查，以及明确的回退配置。两例同家族一致不能满足这一条件。
-
-切换通过受控配置和用户决定完成，不因新增命令而自动迁移。回退只改变入口路由，保留两套不可变运行产物，不删除旧文件、不逆写产品源码。旧架构说明作为历史记录保留，但不得重新成为新开发的规范来源。
+供应商切换由本项目 profile 完成。回退只选择先前 profile 或本项目默认配置，不改写既有 run、源码或归档响应。当前 Agent 的静态有效性验收依据自身测试、实际 run 复算与来源明确的评估；其他流程的门禁不能替代它。
 
 ## 23. 完成定义与验收清单
 
-系统开发完成必须展示以下真实记录，文档齐全或 schema 校验通过本身不算完成：
+本阶段的最小静态纵向闭环要求：只给固定 scope/规范/预算创建问题，经取证、局部静态裁决与模型复核，产生来源可查的 `static-only` finding/excluded/不足报告，并完成归档复算和零远端请求 replay。§24.27 的真实 run 与五家族受控样本已满足这个工程可行性定义；它没有独立真值或无种子召回，不能推出发现准确率或架构效果优势。动态 M6 不属于此定义。
 
-- [ ] 只给 scope、版本、能力和预算，创建至少一条可审查问题；最终允许被反驳。
-- [ ] 一条问题级工具直接返回有依据局部答案，并实际避免重复分析的轨迹。
-- [ ] 一条不能回答的问题返回具体 missing、下一步或终止原因。
-- [ ] 一条跨视图继续调查并创建关联任务、复用证据而不混淆结论的轨迹。
+以下清单是更广的效果与鲁棒性验收；未勾选项不阻塞上述最小闭环，但阻止宣称完整效果验收。文档齐全或 schema 校验通过本身不算完成：
+
+勾选以 §24.26-24.27 的本地静态实测为限。确定性消融、受控传输与真实供应商模型调用分别统计，不能互相替代。
+
+- [x] 只给 scope、版本、能力和预算，创建至少一条可审查问题；最终允许被反驳。
+- [x] 一条问题级工具直接返回有依据局部答案，并实际避免重复分析的轨迹。
+- [x] 一条不能回答的问题返回具体 missing、下一步或终止原因。
+- [x] 一条跨视图继续调查并创建关联任务、复用证据而不混淆结论的轨迹。
 - [ ] 一条主动发现反证或规范例外，从而改变初始判断的轨迹。
-- [ ] 一次源码、编译条件或规范变化导致依赖摘要和否定缓存失效的记录。
-- [ ] 一次崩溃恢复以及远端结果不明时未自动重复付费请求的记录。
+- [ ] 一次源码、编译条件或规范变化导致依赖摘要和否定缓存失效的记录（已测源码和规范变更下的证明摘要失效；尚无否定缓存或编译条件变更实测）。
+- [ ] 一次崩溃恢复以及远端结果不明时未自动重复付费请求的记录（已测 off/replay 续跑及 reserved 状态；尚无真实远端崩溃注入）。
 - [ ] 固定验收集上强否定、权限、版本、模拟隔离和日志安全门通过。
-- [ ] 四组对照、冷/热缓存和必要预处理成本报告，含失败案例和覆盖限制。
-- [ ] 至少一个真实或明确标记的受控变异体产生可复算 Static Finding；真实目标不按预设答案强行升级；所有发现标 `static-only`，不伪装为动态验证。
-- [ ] Builder-LLM 审批规范、样本及标签显式打标来源；评估报告给出实际分母、样本类型及未做的对照，不宣称独立人工准确率。
-- [ ] 若启用 WSL、runner 或 MCP，提供其专属能力与边界测试；未启用则明确标记。
-- [ ] 所有常规工具调用有 Windows 原生执行记录；Linux 例外均有逐次批准、必要性、工具链匹配和资源界限，不存在自动回退。
+- [ ] 同模型四组真实对照及冷/热缓存和必要预处理成本报告，含失败案例和覆盖限制；§24.27 的超时批次未完成，按本轮授权延后。
+- [x] 至少一个真实或明确标记的受控变异体产生可复算 Static Finding；真实目标不按预设答案强行升级；所有发现标 `static-only`，不伪装为动态验证。
+- [x] Builder-LLM 审批规范、样本及标签显式打标来源；评估报告给出实际分母、样本类型及未做的对照，不宣称独立人工准确率。
+- [x] 若启用 WSL、runner 或 MCP，提供其专属能力与边界测试；未启用则明确标记（此轮均未启用）。
+- [x] 本轮所有常规工具与真实模型调用均在 Windows 原生环境执行；未调用 Linux、WSL、runner 或 MCP，没有自动回退。
 
 最终交付包包含本文版本、源代码与测试版本、固定配置、输入清单、正式知识版本、运行事件、证据、上下文、调用账本、评估记录、报告和校验和。密钥、未授权源码和临时探针不得进入交付包。
 
@@ -1589,7 +1589,7 @@ Windows 原生全范围 off `RUN:ee5aead91034af9b`：固定快照 `sha256:2142c2
 
 ### 24.23 Windows 原生自治模型配置入口（2026-10-23）
 
-自治 Agent 可以由 `tools/autonomy-model.ps1` 管理独立的供应商 profile、模型和请求参数，并通过 `OH6_AUTONOMY_LLM_CONFIG` 仅覆盖本 Agent 的模型配置；未指定时继续使用相邻工具的共享 `llm.json`。本开发测试阶段优先可用性：`set-key` 交互输入一次，把对应供应商的密钥明文写到 Git 忽略的 `runtime/autonomy-model/keys/<provider>.key`；之后 `probe` 和 `run` 自动读取并仅向当次 Node 子进程注入 `OH6_LLM_API_KEY`，不再提示口令。此目录不是生产密钥库，能读取本机工作区的进程可读取该文件；不得提交或共享。`probe` 以当前 profile 走与审计一致的真实模型网关请求；live `run` 先通过探针再发审计请求。只记录 provider/model、探针状态、run ID、退出码和失败原因，不记录密钥及原始响应。既有每次 run 的 `maxModelRequests <= 30` 和 `sandbox_manager-pilot` 边界不变；该管理入口不把探针或模拟测试当作模型效果验收。
+自治 Agent 可以由 `tools/autonomy-model.ps1` 管理独立的供应商 profile、模型和请求参数；未指定覆盖时使用本项目的已选 profile（若尚未选择则读取 `config/autonomy-llm.json`），不读取任何相邻 Agent 的配置或传输模块。本开发测试阶段优先可用性：`set-key` 交互输入一次，把对应供应商的密钥明文写到 Git 忽略的 `runtime/autonomy-model/keys/<provider>.key`；之后 `probe` 和 `run` 自动读取并仅向当次 Node 子进程注入 `OH6_LLM_API_KEY`，不再提示口令。此目录不是生产密钥库，能读取本机工作区的进程可读取该文件；不得提交或共享。`probe` 以当前 profile 走与审计一致的真实模型网关请求；live `run` 先通过探针再发审计请求。只记录 provider/model、探针状态、run ID、退出码和失败原因，不记录密钥及原始响应。既有每次 run 的 `maxModelRequests <= 30` 和 `sandbox_manager-pilot` 边界不变；该管理入口不把探针或模拟测试当作模型效果验收。
 
 上一版曾验证口令密钥库，但每次运行需交互且沙箱 DPAPI 不可用，按开发测试优先可用性的要求移除。明文密钥文件一次设置后的自动注入、供应商切换、请求头与失败台账已由临时目录中的假密钥测试覆盖；Windows 原生 `node --test` 为 **348/348**，`git diff --check` 通过，相关文本无 BOM 或 U+FFFD。运行记录固定 baseUrl 与不含密钥的 profile 摘要。当前尚未在此入口设置真实密钥，也未完成真实供应商探针或 live 验收。
 
@@ -1600,5 +1600,35 @@ Windows 原生全范围 off `RUN:ee5aead91034af9b`：固定快照 `sha256:2142c2
 当机械证明为 `excluded`，而经证据门接受的模型意见为 `refuted` 或 `conflict`，`static-contract` Question 与 Assessment 同置 `conflict`，登记 `prover-model-conflict`，报告降为 `candidate` 并保留模型反例理由。机械证明为 `insufficient` 时，仅在已校验的唯一操作目标存在，且检查未精确解析或模型提出经证据门接受的 `refuted` 意见时，以 `static-contract-suspect` 登记 `candidate`；无唯一目标、过期/截断或被证据门拒绝的模型输出不因模型意见升级。candidate 不等于 finding；`task.operationRef` 与报告候选操作保持一致。旧版本的报告复算规则不变，`1.0.18` 的 `check` 重取规范与源码、证明、归档模型意见和仲裁结果。
 
 Windows 原生测试使用固定快照与受控传输层分别覆盖 SetPolicy 的 `excluded -> conflict/candidate`、CheckPolicy 的 `insufficient -> candidate`，两者 live→replay 的语义哈希一致，复算均通过；无模型请求的 off run 也通过。全量 `node --test` **350/350**，历史 `RUN:ee5aead91034af9b` 的 `check` 为 0 error / 0 warning。当前 `commandcode` profile 的 `keyFilePresent=false`，没有发出真实供应商请求；这只验证仲裁机制及回放，不构成真实 Runtime-LLM 发现质量验收。
+
+### 24.25 当前 Agent 的实现边界与回归基线（2026-10-23）
+
+当前运行链只由 `bin/autonomy.js`、`lib/autonomy/*`、本项目模型配置和本项目 HTTP 传输组成；`lib/facts/*` 与固定快照仅作为通用数据层只读复用。缺绑定的下一步建议使用 `inspect-entry-binding`，授权与控制流缺口也记录本 Agent 的取证建议；这些提示字符串不等于已注册或自动执行的工具动作。报告裁决和复算不使用其他 Agent 的阶段或等级。旧的独立实验 CLI/库仍留在仓库供数据溯源，但不作为当前 Agent 的配置、传输、评测门禁或默认测试依赖。
+
+先前全仓测试曾出现 346/350；此轮在 Windows 原生环境复查旧用例，设置测试进程的 Git safe.directory 后，旧 P5 门禁和已删除的旧 README 断言仍有 3 项失败，未设该例外时 P8 历史 fixture 也可能因 Git 所有权报 unavailable。归档的 `out/p5/l4b-summary.json` 明确为 10 packs / 2 ok、8 blocked，原因是 transport-error 和 rate-limited；`out/report/p5-run-summary.json` 的 `p5/l4b` 为 fail，故不得宣称旧门禁通过。没有改写这些归档产物。
+
+退役了 27 个只检验旧流程、过期报告或不存在的说明文档的测试文件；现存 schema/数据约束由 `test/autonomy-boundary.test.js` 校验受控变异体标签来源、家族、预期枚举与文件哈希，而非恢复旧 README。当前默认 `node --test` 只覆盖自治 Agent 和事实数据层，本轮 203/203 通过；它不等于旧全仓 350 项继续通过，旧门禁失败作为历史诊断保留。离线 transport stub 只证明接线正确，未在本轮发出真实供应商请求或证明模型发现质量。
+
+### 24.26 1.0.19 多入口静态任务轨迹与阶段验收（2026-10-23）
+
+`1.0.19-autonomous-static` 使用已发布的两条 Builder-LLM 规范、固定快照和 `sandbox_manager-pilot`。范围扫描在每个入口已有的 `inspectEntry`、`getApplicableNorms`、`inspectAuthorization`、`inspectOperationCandidate`、`inspectPermissionArgument` 与静态证明链上，增加具名 `gap-opened/closed`：直接检查缺失时才取一跳委托，规范适用且绑定时取权限实参。事件绑定目标工具、问题和结果，`check` 逐一核对。相同被调函数、校验引用、操作调用点、规范审核及权限比较的有界证明可复用；每个入口仍独立校验源码和委托边。`summary-reused` 记录来源任务与依赖指纹，复算时检查双方证明相同；不声称节省了全部前置工具调用。
+
+证明不足但已限定唯一操作的范围任务可产生一个按父任务/调用点去重的 `operation-target` 子视图。子任务只取目标源码，结论保持 `insufficient`，缺口为 `operation-semantics-unproven`，不继承父任务的 Finding。`analysis-branch.json`、任务/问题、事件与报告均由 `check` 对照。已完成静态证明在每个 task checkpoint 前保存；续跑固定已发布规范、实现指纹、预算、源码证据和证明状态。历史 run 保持原版本规则，不自动改写。
+
+Windows 原生 Node 25.2.1 的 `RUN:7f186335c6994c6e`（`off`）扫描 19 入口、5 覆盖抽样、1 子视图，共 25 任务、162 工具调用、0 模型请求；报告 6 `finding`、8 `excluded`、0 `candidate`、11 `observation`。其中 3 个权限错配、3 个局部缺少 `CheckPermission` 的 Finding 均为 `static-only`，真实目标没有独立人工真值；未支持的控制流保留不足结论。17 个 `inspectStaticContract` 问题级工具答案中 2 个命中复用；事件有 18 组缺口补证、2 次证明摘要命中、1 次跨视图；`check` 为 0 error / 0 warning。`RUN:df643c0c3e4836da` 在首个 task checkpoint 崩溃后 `off` 续跑，二者报告语义哈希均为 `sha256:95f3d4fe8de6efcef59ca2201ce22d15b9024247026236295f3daaee5455a865`；另有三入口受控传输 `live→replay→崩溃续跑→check` 回归，replay 0 次远端请求。`node --test` 为 207/207。
+
+`out/autonomy/eval/RUN-7f186335c6994c6e.json`（文件 SHA-256 `10908cb4cdcdcf32c7af96e857eb1a140e9cd5f3947a96f64e2ee8ba85685461`）记录五个冻结 Builder 变异家族：给定样本 `judgmentAccuracy=5/5`、`findingPrecision=3/3`、`givenMutantFindingRecall=3/3`、未知样本错误确定 `0/1`；`discoveryRecall=null`、`independentAccuracy=null`。确定性静态消融 A/B/C/D 为 3/5、4/5、5/5、5/5，预处理以评测 JSON 实值为准（含预处理、冷/热用时）；它不是模型对照，D 包含证明器输出，不能据此宣称模型提升。同一模型的五家族真实 A/B/C/D 命令为 `pwsh -NoProfile -File tools/autonomy-model.ps1 eval`，20 请求上限及逐请求意图日志已用受控传输测试；当时尚无真实供应商结果，后续失败实验见 §24.27。
+
+在 2026-10-23 该轮结束时，`commandcode` profile 为 `deepseek/deepseek-v4.1-flash`、`keyFilePresent=false`，进程亦无 `OH6_LLM_API_KEY`。当时 `run` 和 `eval` 均以 `key-not-set-for-provider` 失败并登记 `runtime/autonomy-model/history.jsonl`；该轮不能勾选真实模型对照、live 发现质量及完整效果验收。其后密钥设置、全量 live→零请求 replay→check 与未完成的 A/B/C/D 实验见 §24.27。本轮未启用 WSL/Linux、runner 或 MCP，所有常规工具调用留在 Windows 原生环境。
+
+### 24.27 真实供应商最小纵向闭环与效果评测延期（2026-10-24）
+
+本轮在 Windows 原生 Node 25.2.1 上使用已配置的 Command Code 网关。`deepseek/deepseek-v4.1-flash` 探针成功；`RUN:e6535acb091be883` 的 17 次调用有 10 次失败（主要是 `finish_reason=length`、1200 输出 token 用尽，另有传输错误）。把静态复核请求上限调至 4096 后，`RUN:db13ede5788556f8` 仍有 3 次失败（两次 `length`、一次传输错误）。这两次 run 都由 `check` 复算通过，但管理器明确标为失败，不用于真实模型闭环验收；已归档的失败响应不用于 replay。随后切换网关清单中实际存在的 `xiaomi/mimo-v2.6-pro` 并通过探针，没有改写旧 run。
+
+真实 live `RUN:b4421b4481c6c171` 使用两条已发布 Builder 规范与固定快照 `sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e`，扫描 19 入口、5 覆盖抽样、1 操作目标子视图，共 25 任务、162 工具调用。17 次静态契约模型复核均以 `stop` 完成，0 失败；累计输入 24604、输出 10034 token。报告为 6 `finding`（3 权限错配、3 局部缺少权限检查）、8 `excluded`、0 `candidate`、11 `observation`；所有 Finding 均为 `verificationStatus: "static-only"`，不声称设备行为或可利用性。`node bin/autonomy.js check --run=RUN:b4421b4481c6c171` 为 0 error / 0 warning。`RUN:d3e0fe758fefca62` 从该 live 归档 replay：0 远端请求、17 次归档响应、25 任务、162 工具调用，`check` 同为 0 error / 0 warning；两者报告语义哈希均为 `sha256:95f3d4fe8de6efcef59ca2201ce22d15b9024247026236295f3daaee5455a865`。上述报告与源码证据可在各 run 的 `FINDINGS.md`、`report-model.jsonl`、`static-proofs.json` 和证据归档中复核。
+
+`out/autonomy/eval/RUN-b4421b4481c6c171.json` 的 SHA-256 为 `3e6492013afaae82e70b87dfaeadd88f9437ac13df2b796716c3d896255ca3f4b`：五个隔离的 Builder 标注变异家族给定样本判定 5/5，Finding 3/3、合规排除 1/1、歧义不足 1/1；`discoveryRecall` 和 `independentAccuracy` 仍为 `null`。确定性消融 A/B/C/D 为 3/5、4/5、5/5、5/5，预处理及冷/热时间以该 JSON 的实值为准；它不是模型效果对照，D 输入包含证明器输出。真实 Xiaomi A/B/C/D 批次前 5 次已结算请求中 2 次成功、3 次传输超时，第 6 次在取消时未结算，部分意图/结果保存在 `out/autonomy/eval/model-abcd-1792773915099-79036.jsonl`；管理器记录 `eval-incomplete`，没有 20 次完整结果。对同一失败的 A 原始输入换用已探针成功的 `Qwen/Qwen3.8-Max`，单请求仍在 120015 ms 返回 `transport-error` / `timeout AbortError`。短输入跨模型超时不能归咎于答案质量或某个模型能力；未完成的组不计算准确率。按本轮授权，四组真实模型效果对照和独立标注延后，不阻塞最小工程闭环。
+
+请求诊断日志现记录脱敏详情、`finishReason` 与耗时；评测管理器在有无效 verdict 时不再报 `ok`。`node --test` **207/207**，`git diff --check` 通过。已选 profile 恢复为成功跑完 live 的 Xiaomi 型号，密钥只保存在 Git 忽略的本地文件。尚未验收 §23 中的主动反证改变判断、否定缓存/编译条件失效、真实远端崩溃注入、完整固定安全门与独立效果指标；因此这里只确认**固定组件与快照内的最小静态纵向可行性**，不宣称整个自主审计架构的跨组件有效性。
 
 本文的最终约束是：每个确定判断有可审查依据，每个未知都有具体含义，每次工具或模型调用都推进问题或合理停止；任何层都不能把缺少证据转写成证据。

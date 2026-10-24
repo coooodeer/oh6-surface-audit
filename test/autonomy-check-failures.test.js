@@ -167,7 +167,7 @@ test('assessment 出现禁用词 / 非法枚举 ⇒ forbidden-token + bad-enum',
   const { dir } = copyRun();
   const file = path.join(dir, 'assessments.jsonl');
   const rows = jsonl.readJsonl(file).rows;
-  rows[0].payload.decision = 'PROVEN-VULN';
+  rows[0].payload.decision = 'runtime-verified';
   jsonl.writeJsonl(file, rows);
   const r = await checkOf(dir);
   assert.strictEqual(r.code, 3);

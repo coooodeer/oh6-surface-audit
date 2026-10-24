@@ -29,12 +29,12 @@ function options(args) {
 
 function selectedState() {
   if (fs.existsSync(STATE)) return JSON.parse(fs.readFileSync(STATE, 'utf8'));
-  const shared = JSON.parse(fs.readFileSync(LLM_CONFIG, 'utf8'));
+  const defaults = JSON.parse(fs.readFileSync(LLM_CONFIG, 'utf8'));
   return { version: 1, selected: 'commandcode', profiles: {
-    commandcode: { baseUrl: shared.baseUrl, model: shared.model, apiKeyEnv: 'OH6_LLM_API_KEY',
-      responseFormat: shared.responseFormat, extraHeaders: shared.extraHeaders || {},
-      requestExtra: shared.requestExtra || {}, timeoutMs: shared.timeoutMs || 120000,
-      budgets: { maxTokensPerRequest: shared.budgets?.maxTokensPerRequest || 32768 } }
+    commandcode: { baseUrl: defaults.baseUrl, model: defaults.model, apiKeyEnv: 'OH6_LLM_API_KEY',
+      responseFormat: defaults.responseFormat, extraHeaders: defaults.extraHeaders || {},
+      requestExtra: defaults.requestExtra || {}, timeoutMs: defaults.timeoutMs || 120000,
+      budgets: { maxTokensPerRequest: defaults.budgets?.maxTokensPerRequest || 32768 } }
   } };
 }
 
@@ -226,6 +226,32 @@ async function run(flags, { gatewayFactory = ModelGateway.create, runner = spawn
   return row;
 }
 
+async function evalModel({ runner = spawnSync, gatewayFactory = ModelGateway.create } = {}) {
+  const preflight = await probe({ writeHistory: false, gatewayFactory });
+  if (preflight.status !== 'ok') {
+    const failed = { ...preflight, action: 'eval', status: 'failed', exitCode: 2 };
+    record(failed);
+    return failed;
+  }
+  save(selectedState());
+  const child = runner(process.execPath, ['tools/autonomy-static-eval.js', '--model-abcd', '--write'],
+    { cwd: ROOT, encoding: 'utf8', env: { ...process.env, OH6_AUTONOMY_LLM_CONFIG: ACTIVE },
+      maxBuffer: 8 * 1024 * 1024 });
+  let result = null;
+  try { result = JSON.parse(child.stdout || ''); } catch (_) { /* failure is recorded below */ }
+  const invalid = result?.rows?.filter((row) => !row.verdict).length || 0;
+  const row = { action: 'eval', provider: preflight.provider, model: preflight.model,
+    baseUrl: preflight.baseUrl, profileSha256: preflight.profileSha256,
+    status: child.status === 0 && result?.rows?.length === 20 && !invalid ? 'ok' : 'failed',
+    reason: invalid ? `invalid-model-verdict:${invalid}` :
+      child.status === 0 && result?.rows?.length === 20 ? null :
+        String(child.stderr || child.error?.message || 'eval-incomplete').slice(0, 400),
+    exitCode: child.status, requests: result?.requests || 0,
+    groups: result?.groups || null, invalid, logFile: result?.logFile || null };
+  record(row);
+  return row;
+}
+
 async function main(argv) {
   if (process.platform !== 'win32') throw new Error('windows-native-required');
   const [action, ...rest] = argv;
@@ -242,6 +268,7 @@ async function main(argv) {
   }
   else if (action === 'probe' && !Object.keys(flags).length) result = await probe();
   else if (action === 'run') result = await run(flags);
+  else if (action === 'eval' && !Object.keys(flags).length) result = await evalModel();
   else throw new Error('usage: show | configure --name=... --base-url=... --model=... | use --name=... | probe | run [--max-tasks=N] [--max-model-requests=N] [--task=TASK:id]');
   process.stdout.write(JSON.stringify(result) + '\n');
   return result.status === 'failed' ? 2 : 0;
@@ -251,4 +278,4 @@ if (require.main === module) main(process.argv.slice(2)).then((code) => { proces
   .catch((e) => { process.stderr.write(`${e.message}\n`); process.exitCode = 2; });
 
 module.exports = { HOME, ACTIVE, HISTORY, selectedState, configure, use, show,
-  storeKey, loadKey, removeKey, probe, run, main };
+  storeKey, loadKey, removeKey, probe, run, evalModel, main };

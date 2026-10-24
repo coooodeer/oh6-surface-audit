@@ -85,6 +85,21 @@ test('Windows agent provider profiles, one-time key and failure ledger stay loca
     });
     assert.equal(run.status, 'ok');
     assert.equal(run.runId, 'RUN:aaaaaaaaaaaaaaaa');
+    const evaluated = await manager.evalModel({ gatewayFactory: okGateway,
+      runner: (_exe, args, opts) => {
+        assert.deepEqual(args, ['tools/autonomy-static-eval.js', '--model-abcd', '--write']);
+        assert.equal(opts.env.OH6_LLM_API_KEY, 'fixture-only');
+        return { status: 0, stdout: JSON.stringify({ rows: Array(20).fill({ verdict: 'finding' }), requests: 20,
+          groups: ['A', 'B', 'C', 'D'].map((group) => ({ group, total: 5 })),
+          logFile: 'out/autonomy/eval/fixture.jsonl' }) };
+      } });
+    assert.equal(evaluated.status, 'ok');
+    assert.equal(evaluated.requests, 20);
+    const incomplete = await manager.evalModel({ gatewayFactory: okGateway,
+      runner: () => ({ status: 0, stdout: JSON.stringify({ rows: Array(20).fill({ verdict: null }),
+        requests: 20, groups: [], logFile: 'out/autonomy/eval/incomplete.jsonl' }) }) });
+    assert.equal(incomplete.status, 'failed');
+    assert.equal(incomplete.reason, 'invalid-model-verdict:20');
     let launched = false;
     const denied = await manager.run({}, { gatewayFactory: () => ({ maxTokens: 1200,
       invoke: async () => ({ status: 'error', reason: 'auth-failed', usageKnown: false }) }),

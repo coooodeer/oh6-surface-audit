@@ -10,6 +10,9 @@ const discovery = require('../lib/autonomy/discovery');
 const knowledgeLib = require('../lib/autonomy/knowledge');
 const permissionArgument = require('../lib/autonomy/permission-argument');
 const staticProof = require('../lib/autonomy/static-proof');
+const ids = require('../lib/autonomy/ids');
+const tools = require('../lib/autonomy/tools');
+const { ModelGateway } = require('../lib/autonomy/model');
 const mutantLabels = require('../eval/autonomy/static-builder-mutants.json');
 const scope = require('../K/policies/autonomy-pilot-scope.json');
 
@@ -103,7 +106,8 @@ function evaluateMutants(base = factsLib.AutonomyFacts.open({ snapshot: scope.sn
       reportedFindings: findings.length, insufficientMutants: unknown.length },
     judgmentAccuracy: rows.filter((row) => row.expected === row.observed).length / rows.length,
     findingPrecision: findings.filter((row) => row.expected === 'finding').length / (findings.length || 1),
-    discoveryRecall: positive.filter((row) => row.observed === 'finding').length / positive.length,
+    givenMutantFindingRecall: positive.filter((row) => row.observed === 'finding').length / positive.length,
+    discoveryRecall: null,
     falseCertaintyRate: unknown.filter((row) => ['finding', 'excluded'].includes(row.observed)).length / unknown.length,
     independentAccuracy: null,
     limitation: 'Controlled-mutant fixture enumeration and Builder labels only; not unseeded production discovery or independent human accuracy.',
@@ -148,13 +152,71 @@ function evaluateStaticContrast() {
     groups, limitation: 'D is not an independent oracle; these five same-method fixtures do not establish production unseeded recall or model uplift.' };
 }
 
+async function evaluateModelContrast(gateway, base = factsLib.AutonomyFacts.open({ snapshot: scope.snapshotId, scope }), logFile = null) {
+  if (gateway.mode !== 'live' || !gateway.keyPresent()) throw new Error('model contrast requires a live profile key');
+  const anchors = discovery.buildAnchors(base, scope);
+  const entry = anchors.entries.find((row) => row.kind === 'idl' && row.method === mutantLabels.normMethod);
+  const binding = discovery.resolveBinding(entry.entityId, { facts: base, scope, anchors: anchors.anchors });
+  const knowledge = knowledgeLib.loadPublished(path.join(root, 'K/norms',
+    '050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c', 'knowledge.json'), null, base);
+  const rows = [];
+  for (const label of mutantLabels.labels) {
+    const { facts, fn } = mutantFacts(base, binding.bound, label);
+    const source = fs.readFileSync(path.join(root, 'test/fixtures/autonomy/mutants', label.file), 'utf8');
+    const sourceRef = 'SRC:' + label.sha256.slice(0, 16);
+    const comparison = permissionArgument.compare(facts, entry, { binding: 'resolved', bound: fn }, knowledge);
+    const proof = staticProof.analyze(facts, entry, { binding: 'resolved', bound: fn }, knowledge,
+      comparison, { includeNewFamilies: true });
+    const raw = { proposition: 'Does this local service enforce the published permission before its policy operation?',
+      sourceRef, source, allowedVerdicts: ['finding', 'excluded', 'insufficient'] };
+    const structured = { ...raw, calls: facts.callsOf(fn.qualified), sourceSha256: label.sha256 };
+    const inputs = { A: raw, B: structured, C: { ...structured, norm: knowledge.norm },
+      D: { ...structured, norm: knowledge.norm, boundedProof: proof } };
+    for (const [group, input] of Object.entries(inputs)) {
+      const taskId = ids.taskId('mutant-contrast', { file: label.file });
+      const contextId = ids.contextId('mutant-contrast', { group, input });
+      if (logFile) fs.appendFileSync(logFile, JSON.stringify({ status: 'reserved', file: label.file,
+        group, taskId, contextId, model: gateway.config.model,
+        inputSha256: ids.sha256Hex(ids.canonicalJson(input)) }) + '\n', 'utf8');
+      const call = await gateway.invoke({ purpose: 'mutant-contrast-' + group, taskId, contextId,
+        maxTokens: 4096, messages: [
+          { role: 'system', content: 'Return JSON only: verdict (finding|excluded|insufficient), evidenceRefs (array), rationale. Use the supplied source only; do not assume a missing check is globally exploitable.' },
+          { role: 'user', content: JSON.stringify(input) }
+        ] });
+      const verdict = call.status === 'ok' && ['finding', 'excluded', 'insufficient'].includes(call.parsed?.verdict) &&
+        Array.isArray(call.parsed.evidenceRefs) && call.parsed.evidenceRefs.includes(sourceRef) &&
+        call.parsed.evidenceRefs.every((ref) => ref === sourceRef) ? call.parsed.verdict : null;
+      rows.push({ file: label.file, familyId: label.familyId, expected: label.expected,
+        group, verdict, failure: verdict ? null : call.reason || 'invalid-model-verdict',
+        model: call.model, callId: call.callId, inputSha256: ids.sha256Hex(ids.canonicalJson(input)),
+        responseSha256: call.contentSha256, usage: call.usage, wallMs: call.wallMs });
+      if (logFile) fs.appendFileSync(logFile, JSON.stringify({ status: call.status, file: label.file,
+        group, callId: call.callId, reason: call.reason || null,
+        detail: call.detail || null, finishReason: call.finishReason || null, wallMs: call.wallMs,
+        responseSha256: call.contentSha256 || null }) + '\n', 'utf8');
+    }
+  }
+  return { kind: 'same-model-mutant-contrast', labelAuthority: mutantLabels.labelAuthority,
+    needsHumanTuning: true, model: gateway.config.model, snapshotId: base.snapshotId,
+    requests: gateway.budget.modelRequests, maxModelRequests: gateway.budget.policy.maxModelRequests,
+    groups: ['A', 'B', 'C', 'D'].map((group) => {
+      const groupRows = rows.filter((row) => row.group === group);
+      return { group, correct: groupRows.filter((row) => row.verdict === row.expected).length,
+        total: groupRows.length, invalid: groupRows.filter((row) => !row.verdict).length,
+        falseCertainty: groupRows.filter((row) => row.expected === 'insufficient' &&
+          ['finding', 'excluded'].includes(row.verdict)).length };
+    }), rows, limitation: 'Given controlled mutants and Builder labels; D contains program proof. No scope-only discovery recall or independent oracle.' };
+}
+
 function evaluateSuite(runId) {
   const runDir = path.join(root, 'out', 'autonomy', runId.replace(':', '-'));
   const result = spawnSync(process.execPath, ['bin/autonomy.js', 'check', `--run=${runId}`],
     { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(`suite check failed: ${result.stdout} ${result.stderr}`);
   const run = JSON.parse(fs.readFileSync(path.join(runDir, 'run.json'), 'utf8'));
-  if (run.payload.architectureVersion !== '1.0.17-static-scan') throw new Error('not a static suite run');
+  if (!['1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(run.payload.architectureVersion)) {
+    throw new Error('not a static suite run');
+  }
   const rows = fs.readFileSync(path.join(runDir, 'report-model.jsonl'), 'utf8').trim().split('\n')
     .map(JSON.parse).map((record) => record.payload);
   const counts = Object.fromEntries(['finding', 'excluded', 'candidate', 'observation']
@@ -168,7 +230,25 @@ function evaluateSuite(runId) {
 }
 
 if (require.main === module) {
+  (async () => {
   try {
+    if (process.argv.includes('--model-abcd')) {
+      const gateway = ModelGateway.create({ mode: 'live',
+        budget: tools.createBudget({ maxModelRequests: 20, maxTaskModelRequests: 4,
+          maxInputTokens: 200000, maxOutputTokens: 60000 }) });
+      const dir = path.join(root, 'out', 'autonomy', 'eval');
+      if (process.argv.includes('--write')) fs.mkdirSync(dir, { recursive: true });
+      const logFile = process.argv.includes('--write') ? path.join(dir,
+        'model-abcd-' + Date.now() + '-' + process.pid + '.jsonl') : null;
+      const result = await evaluateModelContrast(gateway, undefined, logFile);
+      if (process.argv.includes('--write')) {
+        result.logFile = path.relative(root, logFile).split(path.sep).join('/');
+        fs.writeFileSync(logFile.replace(/\.jsonl$/, '.json'),
+          JSON.stringify(result, null, 2) + '\n', 'utf8');
+      }
+      process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+      return;
+    }
     const runArg = process.argv.find((arg) => arg.startsWith('--suite-run='));
     const result = runArg ? { production: evaluateSuite(runArg.slice(12)), mutants: evaluateMutants(),
       abcd: evaluateStaticContrast() }
@@ -181,6 +261,7 @@ if (require.main === module) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   }
   catch (e) { process.stderr.write(`${e.message}\n`); process.exitCode = 1; }
+  })();
 }
 
-module.exports = { evaluate, summarize, evaluateMutants, evaluateSuite, evaluateStaticContrast };
+module.exports = { evaluate, summarize, evaluateMutants, evaluateSuite, evaluateStaticContrast, evaluateModelContrast };

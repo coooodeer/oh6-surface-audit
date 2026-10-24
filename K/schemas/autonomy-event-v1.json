@@ -12,7 +12,7 @@
     "taskId": { "type": ["string", "null"] },
     "kind": {
       "type": "string",
-      "enum": ["run-created", "run-resumed", "replay-source", "task-admitted", "task-started", "tool-called", "tool-intent", "tool-completed", "question-updated", "assessment-written", "task-finished", "report-written", "budget-stop", "run-finished", "verify-placeholder", "vertical-action", "view-changed", "branch-rejected"]
+      "enum": ["run-created", "run-resumed", "replay-source", "task-admitted", "task-started", "tool-called", "tool-intent", "tool-completed", "question-updated", "assessment-written", "task-finished", "report-written", "budget-stop", "run-finished", "verify-placeholder", "vertical-action", "view-changed", "branch-rejected", "gap-opened", "gap-closed", "summary-reused"]
     },
     "from": { "type": ["string", "null"] },
     "to": { "type": ["string", "null"] },
