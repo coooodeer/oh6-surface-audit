@@ -1,0 +1,30 @@
+{
+  "policyId": "autonomy-security-anchors-os-account",
+  "version": "1.0.0",
+  "description": "第二组件 IAccountIAM 的 securityDecision 预期策略锚点（指南 §15.4 双命题裁决）。与 pilot 锚点文件分离：权限集合与 SA profile 都是 os_account 的，外部文件按 sha256 固定，漂移即拒绝。",
+  "permissionDefinitions": {
+    "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+    "sha256": "b710d15054d7d04fb3d72d6741bba5831fab96b56f8996b348c2ec8eaf5f5da2",
+    "permissions": [
+      "ohos.permission.MANAGE_USER_IDM",
+      "ohos.permission.USE_USER_IDM",
+      "ohos.permission.ACCESS_USER_AUTH_INTERNAL"
+    ],
+    "derivation": "availableLevel/availableType/grantMode/provisionEnable 只描述权限的可申请路径。三个权限均为 system_basic / system_grant / provisionEnable=true：availableLevel 高于 normal 应用 APL，但 ACL 使能意味着受限开放权限可经部署签名配置申请，静态快照不能判定某个 normal 应用是否持有。因此这些锚点只能证明“不持有该权限的主体被实际门禁拒绝”的 scoped 排除，不能单独支撑“入口本应要求该权限”的正向安全 finding；正向结论上限 candidate（policy-anchor-doc-only / acl-enabled-obtainability-deployment-dependent）。",
+    "normalApplicationSubject": {
+      "kind": "normal-application",
+      "holdsPermissionsOfLevels": ["normal"],
+      "cannotHoldPermissionsOfLevels": ["system_basic", "system_core"]
+    }
+  },
+  "saProfile": {
+    "file": "base/account/os_account/sa_profile/accountmgr.json",
+    "sha256": "a42376c7cd9c6d7cefe01fa68c1a10d2c47f1b6768a9666513351c2e6737898d",
+    "process": "accountmgr",
+    "systemAbilityId": 200,
+    "derivation": "SA profile 声明 accountmgr 能力运行于独立系统进程 accountmgr；本文件只提供进程归属事实，不单独确立任何接口的预期授权策略。"
+  },
+  "docOnlyPolicyCap": "candidate",
+  "aclNote": "ACL 使能（provisionEnable=true）的权限可获得性依赖部署签名配置，静态快照无法判定；锚点不因等级单独支撑安全 finding（§24.28 复核修正）。",
+  "note": "文档原文与 Builder 自审假设不是本锚点；仅以它们为预期策略的安全命题上限为 candidate（指南 §15.4）。"
+}

@@ -1,0 +1,17 @@
+{
+  "policyId": "autonomy-access-token-arkts-direct-budget",
+  "version": "1.0.0",
+  "description": "One selected ArkTS on entry, offline only; other exports remain outside the selected task set.",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 40,
+    "maxInputTokens": 30000,
+    "maxOutputTokens": 6000,
+    "maxWallSeconds": 600,
+    "maxTasks": 1,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  }
+}

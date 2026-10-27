@@ -1,0 +1,17 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "builder-llm-2026-10-25-blind",
+  "reviewedAt": "2026-10-25T05:00:00Z",
+  "decision": "accepted",
+  "normId": "NORM:4abbc54b1a137065",
+  "proposalVersion": "sha256:eeaff506f453dc9923e69a09118fbb503848b8d9c09575b73e724695b0cf9351",
+  "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+  "appliesTo": ["OpenSession"],
+  "applicabilityRationale": {
+    "OpenSession": "受控盲测语料：js-apis-osAccount-sys.md:4468 的 MANAGE_USER_IDM 声明 + account_iam_service.cpp 的 PERMISSION_MANAGE_USER_IDM；只用于盲测。"
+  },
+  "rationale": "Builder-LLM 为受控盲测语料接受 OpenSession 的 MANAGE_USER_IDM 映射；来源带 sourceSalt，仅绑定盲测快照，不外推真实组件结论。"
+}

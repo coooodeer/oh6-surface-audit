@@ -33,6 +33,32 @@ test('tool intent pairs are checked and an uncompleted action stays pending', ()
   assert.throws(() => reconcileToolEvents([intent, done, done]), /tool-completion-unbound/);
 });
 
+test('afterCrash accepts the deterministic dead-owner sentinel but refuses a live writer pid', () => {
+  const { RunStore } = require('../lib/autonomy/store');
+  const store = RunStore.create({
+    scopeId: 'lock-regression', snapshotId: `sha256:${'a'.repeat(64)}`, mode: 'off',
+    capabilityProfile: 'readonly-local', inputManifestId: `AM-${'0'.repeat(16)}`,
+    manifestId: `AM-${'0'.repeat(16)}`,
+    budget: { maxToolCalls: 1, maxModelRequests: 0 }
+  });
+  try {
+    const lockFile = store.file('run.lock');
+    const owner = JSON.parse(fs.readFileSync(lockFile, 'utf8'));
+    store.releaseLock();
+    // 崩溃 fixture 的确定性哨兵：pid=-1 表示 owner 已死，不得做进程存活检查。
+    fs.writeFileSync(lockFile, JSON.stringify({ ...owner, pid: -1 }) + '\n', 'utf8');
+    assert.equal(store.acquireLock({ afterCrash: true }).pid, process.pid);
+    store.releaseLock();
+    // 真实存活 pid 仍必须拒绝，锁保护不能被测试哨兵削弱。
+    fs.writeFileSync(lockFile, JSON.stringify({ ...owner, pid: process.pid }) + '\n', 'utf8');
+    assert.throws(() => store.acquireLock({ afterCrash: true }), /original writer may still be running/);
+  } finally {
+    const dir = path.resolve(store.dir);
+    if (dir.startsWith(path.resolve(AUTONOMY_ROOT) + path.sep) &&
+        /^RUN-[0-9a-f]{16}$/.test(path.basename(dir))) fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('Windows crash at first read-only tool intent resumes the same run once', () => {
   const crashed = spawnSync(process.execPath, ['tools/fixtures/crash-tool-intent.js'],
     { cwd: path.join(__dirname, '..'), encoding: 'utf8' });

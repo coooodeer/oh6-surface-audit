@@ -17,7 +17,7 @@ function cli(...args) {
 }
 
 test('scope-only static trajectory names followups, reuses proof, and isolates an operation view', () => {
-  const run = cli('run', '--mode=off', '--scope=K/policies/autonomy-pilot-scope.json',
+  const run = cli('run', '--mode=off', '--legacy-contract', '--scope=K/policies/autonomy-pilot-scope.json',
     '--budget=K/policies/autonomy-pilot-budget.json', '--knowledge=' + knowledge);
   assert.equal(run.status, 0, run.stderr);
   const { runId } = JSON.parse(run.stdout);

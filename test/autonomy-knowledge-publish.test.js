@@ -172,12 +172,14 @@ test('second norm requires a matching signed review and fresh source at publicat
     assert.equal(cli(...publishArgs).status, 2);
     const stale = Object.create(facts);
     stale.sourceRoot = temp;
-    for (const rel of [knowledge.DOC, knowledge.HEADER]) {
+    const persistenceSource = knowledge.PILOT_SOURCES.find((source) =>
+      source.permission === 'ohos.permission.FILE_ACCESS_PERSIST');
+    for (const rel of [persistenceSource.docFile, persistenceSource.headerFile]) {
       const dest = path.join(temp, ...rel.split('/'));
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.copyFileSync(path.join(facts.sourceRoot, ...rel.split('/')), dest);
     }
-    const docFile = path.join(temp, ...knowledge.DOC.split('/'));
+    const docFile = path.join(temp, ...persistenceSource.docFile.split('/'));
     fs.writeFileSync(docFile, fs.readFileSync(docFile, 'utf8').replace('FILE_ACCESS_PERSIST', 'FILE_ACCESS_CHANGE'), 'utf8');
     assert.throws(() => knowledge.publishAuthorization(proposal, sign(fields), publicKey, stale),
       /persistence-norm-missing-or-ambiguous/);

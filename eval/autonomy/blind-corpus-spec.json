@@ -1,0 +1,132 @@
+{
+  "corpusVersion": "blind-cross-component-v1",
+  "description": "跨组件受控盲测语料（sandbox_manager + os_account）。运行器只读取 scope/知识/预算；本文件不含期望出口，标签在 eval/autonomy/blind-cross-component.json。",
+  "root": "../oh6-surface-audit/test/fixtures/autonomy",
+  "components": {
+    "sandbox_manager": {
+      "interface": "OHOS.AccessControl.SandboxManager.ISandboxManager",
+      "owner": "SandboxManagerService",
+      "token": "ohos.sandboxmanager.ISandboxManager",
+      "operation": {
+        "kind": "get-instance-call",
+        "instanceExpression": "PolicyInfoManager::GetInstance",
+        "targetClass": "PolicyInfoManager",
+        "entryOwnerSuffix": "SandboxManagerService"
+      },
+      "checkPermission": {
+        "kind": "direct"
+      },
+      "checkPermissionQualified": "OHOS::AccessControl::SandboxManager::SandboxManagerService::CheckPermission",
+      "nativeHelperQualified": "OHOS::AccessControl::SandboxManager::SandboxManagerService::IsFileManagerCalling",
+      "namespace": "OHOS::AccessControl::SandboxManager::"
+    },
+    "os_account": {
+      "interface": "OHOS.AccountSA.IAccountIAM",
+      "owner": "AccountIAMService",
+      "token": "ohos.accountfwk.IAccountIAM",
+      "operation": {
+        "kind": "get-instance-call",
+        "instanceExpression": "InnerAccountIAMManager::GetInstance",
+        "targetClass": "InnerAccountIAMManager",
+        "entryOwnerSuffix": "AccountIAMService"
+      },
+      "checkPermission": {
+        "kind": "helper"
+      },
+      "checkPermissionQualified": "OHOS::AccountSA::AccountIAMService::CheckPermission",
+      "namespace": "OHOS::AccountSA::"
+    }
+  },
+  "cases": [
+    {
+      "component": "sandbox_manager",
+      "method": "SetPolicy",
+      "file": "security-mutants/gate-permission-weakened.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "UnSetPolicy",
+      "file": "security-mutants/gate-permission-different-stronger.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "UnSetPolicy",
+      "file": "security-mutants/gate-native-token.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "UnSetPolicy",
+      "file": "security-mutants/gate-uid.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "SetPolicy",
+      "file": "security-mutants/gate-non-early-return.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "SetPolicy",
+      "file": "security-mutants/gate-subject-mismatch.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "UnSetPolicy",
+      "file": "security-mutants/no-gate-normal-level.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "SetPolicy",
+      "file": "security-mutants/no-gate-core-level.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "UnSetPolicy",
+      "file": "security-mutants/combined-gate-ambiguous.cpp"
+    },
+    {
+      "component": "sandbox_manager",
+      "method": "UnSetPolicy",
+      "file": "security-mutants/compliant-direct-check.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/compliant-manage-idm.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/weakened-use-idm.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/different-stronger.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/no-gate.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/non-early-return.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/subject-mismatch.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/unrecognized-guard.cpp"
+    },
+    {
+      "component": "os_account",
+      "method": "OpenSession",
+      "file": "os-account-mutants/combined-gate.cpp"
+    }
+  ]
+}

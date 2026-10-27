@@ -1,0 +1,21 @@
+{
+  "policyId": "autonomy-ces-icommonevent-budget",
+  "version": "1.0.0",
+  "description": "第三组件 ICommonEvent 的 off-only 预算：17 个 IDL 入口；maxModelRequests=0 使任何未授权 live 在预算校验处失败。",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 400,
+    "maxInputTokens": 300000,
+    "maxOutputTokens": 60000,
+    "maxWallSeconds": 1800,
+    "maxTasks": 25,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  },
+  "notes": [
+    "off 模式必须 0 次模型调用。",
+    "17 个 ICommonEvent 入口每任务约 8 次工具调用；不纳入文件抽样。"
+  ]
+}

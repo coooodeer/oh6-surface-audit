@@ -1,0 +1,34 @@
+{
+  "policyId": "ces-r1",
+  "version": "1.0.0",
+  "description": "补充事实范围（第三组件）：base/notification/common_event_service 的生产代码与元数据。独立于五根快照 d4-r1，只用于第三组件 E3 路径；不改写既有快照。",
+  "snapshotScope": "ces-r1",
+  "roots": [
+    { "root": "base/notification/common_event_service", "part": "notification" }
+  ],
+  "compdbParts": ["notification"],
+  "sourceExtensions": [".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"],
+  "cExtensions": [".c"],
+  "testPathPattern": "/(test|tests|unittest|fuzztest|mock|moduletest|systemtest)/",
+  "testFilePattern": "(_test|_unittest|_fuzzer|_mock)\\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$",
+  "metadataSources": [
+    { "kind": "idl", "glob": "**/*.idl", "scope": "roots", "required": true },
+    { "kind": "sa", "glob": "**/sa_profile/**/*.json", "scope": "roots", "required": true },
+    { "kind": "permission", "glob": "**/*permission*.json", "scope": "roots", "required": false },
+    { "kind": "napi", "glob": null, "scope": "code-derived", "required": true },
+    { "kind": "ces", "glob": "**/sa_profile/**/*.json#start-on-demand.commonevent", "scope": "roots", "required": false },
+    { "kind": "harness", "glob": null, "scope": "definition-pending", "required": false },
+    {
+      "kind": "permission-authority",
+      "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+      "scope": "external-authority",
+      "required": false
+    },
+    {
+      "kind": "ces-authority",
+      "dir": "base/notification/common_event_service",
+      "scope": "external-authority",
+      "required": false
+    }
+  ]
+}

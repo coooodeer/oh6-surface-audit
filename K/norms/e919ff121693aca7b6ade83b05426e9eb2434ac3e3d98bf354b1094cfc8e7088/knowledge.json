@@ -1,0 +1,50 @@
+{
+  "snapshotId": "sha256:dfef986b671e1f51be558bab1389cd69bf04529bd1355e6f2f444a99d72fb359",
+  "knowledgeVersion": "sha256:e919ff121693aca7b6ade83b05426e9eb2434ac3e3d98bf354b1094cfc8e7088",
+  "norm": {
+    "normId": "NORM:39d6004c0532bcc1",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-commonEventManager-sys.md",
+      "line": 143,
+      "sha256": "ad20958b78b131cf5577a9dc4ef2730e2e0c5698d05eb09319b216fc360725eb",
+      "text": "**需要权限**:  ohos.permission.COMMONEVENT_STICKY"
+    },
+    "permission": "ohos.permission.COMMONEVENT_STICKY",
+    "header": {
+      "file": "base/notification/common_event_service/services/src/common_event_manager_service.cpp",
+      "sha256": "5a6ac86439826a92d6b9e226ce809a1b1bcf13c9ac01dddd11d1c69a1d1b591e",
+      "factRef": "F:dfef986b671e:file:fc5b149567252f86"
+    },
+    "appliesTo": [
+      "RemoveStickyCommonEvent"
+    ],
+    "limitation": "The system API reference declares COMMONEVENT_STICKY for removeStickyCommonEvent; the IDL method is RemoveStickyCommonEvent. The permission is an inline string literal in the implementation, so no header constant is registered and the contract comparison is expected to stay insufficient until inline literals are modeled.",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:d4dd3166e83cebdf"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "builder-llm-2026-10-26",
+    "reviewedAt": "2026-10-26T00:00:00Z",
+    "decision": "accepted",
+    "normId": "NORM:39d6004c0532bcc1",
+    "proposalVersion": "sha256:c064c00d4fe955f985f2fbaab58038a859c721f488fa8e333790bf0bbf5e69c8",
+    "snapshotId": "sha256:dfef986b671e1f51be558bab1389cd69bf04529bd1355e6f2f444a99d72fb359",
+    "appliesTo": [
+      "RemoveStickyCommonEvent"
+    ],
+    "applicabilityRationale": {
+      "RemoveStickyCommonEvent": "The commonEventManager.removeStickyCommonEvent API declares COMMONEVENT_STICKY at js-apis-commonEventManager-sys.md:135-143. The ICommonEvent method and service implementation at common_event_manager_service.cpp:577-604 check the same literal before the inner manager call. This review does not establish an ArkTS-to-IPC caller identity path."
+    },
+    "rationale": "The fixed API declaration and service source support this one IDL permission contract. Source-level binding and caller identity from either ArkTS overload require separate proof; this review does not authorize a security finding.",
+    "reviewRef": "REVIEW:d4dd3166e83cebdf",
+    "sha256": "d4dd3166e83cebdf3f8dae02eb4114eef689d85fae6731c6df005d915dcc9e1e"
+  }
+}

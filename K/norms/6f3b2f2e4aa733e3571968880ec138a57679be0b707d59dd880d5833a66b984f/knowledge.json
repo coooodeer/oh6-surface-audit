@@ -1,0 +1,53 @@
+{
+  "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+  "knowledgeVersion": "sha256:6f3b2f2e4aa733e3571968880ec138a57679be0b707d59dd880d5833a66b984f",
+  "norm": {
+    "normId": "NORM:2a109fbd1f6fb58d",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "base/accesscontrol/sandbox_manager/README_zh.md",
+      "line": 22,
+      "sha256": "b19edec78838e3a48ddea5e90ad11118ba2145a2c62fa50a454d29d769a5cb97",
+      "text": "1. SetPolicy接口调用者须具有ohos.permission.SET_SANDBOX_POLICY权限，权限定义详见[access_token](https://gitee.com/openharmony/security_access_token)仓"
+    },
+    "permission": "ohos.permission.SET_SANDBOX_POLICY",
+    "header": {
+      "file": "base/accesscontrol/sandbox_manager/services/sandbox_manager/main/cpp/include/service/sandbox_manager_const.h",
+      "sha256": "173bad38826e9384d9a2369a6f38ba4a341d5d2a347fdbd9f2b1d18feeb00cd3",
+      "factRef": "F:000000000000:file:4db3355e469a3541"
+    },
+    "appliesTo": [
+      "SetPolicy",
+      "SetPolicyAsync"
+    ],
+    "limitation": "受控盲测语料：真实文档声明 + 受控变异体实现；只用于盲测流程，不外推为真实组件结论。",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:58eae6eee8d77e84"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "builder-llm-2026-10-25-blind",
+    "reviewedAt": "2026-10-25T05:00:00Z",
+    "decision": "accepted",
+    "normId": "NORM:2a109fbd1f6fb58d",
+    "proposalVersion": "sha256:4a06438d2b2da47b2735ad464b6cf93a32018e24695e5af4b19ec4e1114e8f59",
+    "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+    "appliesTo": [
+      "SetPolicy",
+      "SetPolicyAsync"
+    ],
+    "applicabilityRationale": {
+      "SetPolicy": "受控盲测语料：README_zh.md 的 SetPolicy 声明 + sandbox_manager_const.h 的 SET_POLICY_PERMISSION_NAME；只用于盲测。",
+      "SetPolicyAsync": "受控盲测语料不包含 SetPolicyAsync 入口；保留与 pilot 来源一致的适用于已审核方法集合，不因此在盲测中产生入口。"
+    },
+    "rationale": "Builder-LLM 为受控盲测语料接受与 pilot 来源一致的 SetPolicy 适用范围；来源带 sourceSalt，仅绑定盲测快照，不外推真实组件结论。",
+    "reviewRef": "REVIEW:58eae6eee8d77e84",
+    "sha256": "58eae6eee8d77e84ff8e74cc309eab2b648618190edcfeb2bdcf8a4107242eea"
+  }
+}

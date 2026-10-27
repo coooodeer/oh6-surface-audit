@@ -1,0 +1,19 @@
+{
+  "policyId": "autonomy-r3-napi-scope",
+  "version": "1.0.0",
+  "scopeId": "r3-access-token-privacy-napi",
+  "snapshotId": "sha256:eedbad92272908c63ab64dc1396d3709647dba00f3cb16dadeefb7b59fecbd80",
+  "roots": [{ "root": "base/security/access_token", "part": "security" }],
+  "entrySources": [{ "kind": "napi", "enabled": true }],
+  "entryFilter": { "entryKinds": ["napi-export"] },
+  "napiBindings": {
+    "privacyManager": {
+      "handlerRoot": "base/security/access_token/frameworks/js/napi/privacy/src",
+      "qualifiedPrefix": "OHOS::Security::AccessToken::"
+    }
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

@@ -44,7 +44,7 @@
             "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
           }
         },
-        "decision": { "type": "string", "enum": ["supported", "refuted", "insufficient", "conflict"] },
+        "decision": { "type": "string", "enum": ["supported", "refuted", "insufficient", "conflict", "not-applicable"] },
         "basis": { "type": "string", "enum": ["observed", "derived", "llm", "mixed"] },
         "assurance": { "type": "string", "enum": ["observation", "bounded-analysis", "model-assessment"] },
         "evidenceRefs": { "type": "array", "items": { "type": "string", "pattern": "^EVID:[0-9a-f]{16}$" } },

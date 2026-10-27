@@ -1,0 +1,19 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "builder-llm-2026-10-25",
+  "reviewedAt": "2026-10-25T03:20:00Z",
+  "decision": "accepted",
+  "normId": "NORM:0a81a774a980cf15",
+  "proposalVersion": "sha256:cdc20e9a4b80399d1b08841e87f79c875c3228648489ee64c823cc00afe64664",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "appliesTo": [
+    "SetOsAccountDistributedInfo"
+  ],
+  "applicabilityRationale": {
+    "SetOsAccountDistributedInfo": "js-apis-distributed-account-sys.md:126-136 section setOsAccountDistributedInfoByLocalId declares MANAGE_DISTRIBUTED_ACCOUNTS; account_mgr_service.cpp:203-232 checks PERMISSION_MANAGE_DISTRIBUTED_ACCOUNTS before calling OhosAccountManager::OhosAccountStateChange. The IDL/JS name difference is the ByLocalId suffix only."
+  },
+  "rationale": "Builder-LLM accepts the single SetOsAccountDistributedInfo mapping for MANAGE_DISTRIBUTED_ACCOUNTS. Applicability is a Builder judgment, not independent verification; the expected policy anchor for this permission is not established in this round, and the operation target remains ambiguous because two OhosAccountStateChange overloads share argc 3."
+}

@@ -1,0 +1,31 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "builder-llm-2026-10-25",
+  "reviewedAt": "2026-10-25T02:20:00Z",
+  "decision": "accepted",
+  "normId": "NORM:7f6e1f58080e1890",
+  "proposalVersion": "sha256:a7fc5a89f4004911d273788dab7f8dfdc815dacebb34a86bee653ffaa818a662",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "appliesTo": [
+    "OpenSession",
+    "CloseSession",
+    "AddCredential",
+    "UpdateCredential",
+    "Cancel",
+    "DelCred",
+    "DelUser"
+  ],
+  "applicabilityRationale": {
+    "OpenSession": "js-apis-osAccount-sys.md:4468 declares MANAGE_USER_IDM for openSession; account_iam_service.cpp:95 checks PERMISSION_MANAGE_USER_IDM before InnerAccountIAMManager::OpenSession.",
+    "CloseSession": "js-apis-osAccount-sys.md:4701-4712 section closeSession declares MANAGE_USER_IDM; account_iam_service.cpp:112 checks the same constant before InnerAccountIAMManager::CloseSession.",
+    "AddCredential": "js-apis-osAccount-sys.md:4555-4566 section addCredential declares MANAGE_USER_IDM; account_iam_service.cpp:130 checks it before InnerAccountIAMManager::AddCredential.",
+    "UpdateCredential": "js-apis-osAccount-sys.md:4623-4634 section updateCredential declares MANAGE_USER_IDM; account_iam_service.cpp:151 checks it before InnerAccountIAMManager::UpdateCredential.",
+    "Cancel": "js-apis-osAccount-sys.md:4737-4748 section cancel declares MANAGE_USER_IDM; account_iam_service.cpp:166 checks it before InnerAccountIAMManager::Cancel.",
+    "DelCred": "js-apis-osAccount-sys.md:4822-4833 section delCred declares MANAGE_USER_IDM; account_iam_service.cpp:179 checks it before InnerAccountIAMManager::DelCred.",
+    "DelUser": "js-apis-osAccount-sys.md:4776-4787 section delUser declares MANAGE_USER_IDM; account_iam_service.cpp:195 checks it before InnerAccountIAMManager::DelUser."
+  },
+  "rationale": "Builder-LLM review of the os_account IAccountIAM manage-credential family: the system API reference declares MANAGE_USER_IDM on each JS section, and the C++ service method (declared with the same name modulo capitalization) checks PERMISSION_MANAGE_USER_IDM through its private CheckPermission helper before the InnerAccountIAMManager operation. Applicability is a Builder-LLM mapping from JS API sections to IDL methods; it does not establish that the expected authorization policy is independently verified."
+}

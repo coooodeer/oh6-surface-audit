@@ -1,0 +1,32 @@
+{
+  "policyId": "autonomy-access-token-scope",
+  "version": "1.0.0",
+  "description": "access_token 入口绑定实验：在抽样快照上给三个 IDL 接口提供 owner 映射，并用 IDL paramCount 消歧同名重载。只用于绑定测量，不代表 access_token 已审计。",
+  "scopeId": "access-token-binding",
+  "snapshotId": "sha256:e2a8bcc4f138ca641e043fdf74f43fce11a6b002e7d2845bbb117e84df031177",
+  "staticSuite": false,
+  "roots": [{ "root": "base/security/access_token", "part": "security" }],
+  "entrySources": [{ "kind": "idl", "enabled": true }],
+  "entryFilter": {
+    "interfaces": [
+      "OHOS.Security.AccessToken.El5FilekeyManagerInterface",
+      "OHOS.Security.AccessToken.IAccessTokenManager",
+      "OHOS.Security.AccessToken.IPrivacyManager"
+    ],
+    "entryKinds": ["idl"]
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.Security.AccessToken.El5FilekeyManagerInterface": { "implOwnerSuffix": "El5FilekeyManagerService" },
+      "OHOS.Security.AccessToken.IAccessTokenManager": { "implOwnerSuffix": "AccessTokenManagerService" },
+      "OHOS.Security.AccessToken.IPrivacyManager": { "implOwnerSuffix": "PrivacyManagerService" }
+    }
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true,
+    "matchArgc": true
+  },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000, "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

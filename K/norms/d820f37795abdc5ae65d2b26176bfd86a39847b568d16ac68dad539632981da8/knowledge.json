@@ -1,0 +1,50 @@
+{
+  "snapshotId": "sha256:9bbb04f8f62e125dd747e2dc410b46a0634d50515bebac6248166b3483a5f29f",
+  "knowledgeVersion": "sha256:d820f37795abdc5ae65d2b26176bfd86a39847b568d16ac68dad539632981da8",
+  "norm": {
+    "normId": "NORM:e4c0b23915ea5157",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-commonEventManager-sys.md",
+      "line": 143,
+      "sha256": "ad20958b78b131cf5577a9dc4ef2730e2e0c5698d05eb09319b216fc360725eb",
+      "text": "**需要权限**:  ohos.permission.COMMONEVENT_STICKY"
+    },
+    "permission": "ohos.permission.COMMONEVENT_STICKY",
+    "header": {
+      "file": "base/notification/common_event_service/services/src/common_event_manager_service.cpp",
+      "sha256": "5a6ac86439826a92d6b9e226ce809a1b1bcf13c9ac01dddd11d1c69a1d1b591e",
+      "factRef": "F:9bbb04f8f62e:file:fc5b149567252f86"
+    },
+    "appliesTo": [
+      "RemoveStickyCommonEvent"
+    ],
+    "limitation": "The system API reference declares COMMONEVENT_STICKY for removeStickyCommonEvent; the IDL method is RemoveStickyCommonEvent. The permission is an inline string literal in the implementation, so no header constant is registered and the contract comparison is expected to stay insufficient until inline literals are modeled.",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:e1acb9fcd99d14dc"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "builder-llm-2026-10-25",
+    "reviewedAt": "2026-10-25T04:00:00Z",
+    "decision": "accepted",
+    "normId": "NORM:e4c0b23915ea5157",
+    "proposalVersion": "sha256:e2312d4f574a2b97c4d8d526163cb1f49c1cceda40607abfc892a9c59f7b9820",
+    "snapshotId": "sha256:9bbb04f8f62e125dd747e2dc410b46a0634d50515bebac6248166b3483a5f29f",
+    "appliesTo": [
+      "RemoveStickyCommonEvent"
+    ],
+    "applicabilityRationale": {
+      "RemoveStickyCommonEvent": "js-apis-commonEventManager-sys.md:135-143 section commonEventManager.removeStickyCommonEvent declares COMMONEVENT_STICKY; common_event_manager_service.cpp:577-604 checks the inline literal ohos.permission.COMMONEVENT_STICKY via AccessTokenHelper::VerifyAccessToken before InnerCommonEventManager::RemoveStickyCommonEvent. IDL and JS names differ only by the commonEventManager prefix."
+    },
+    "rationale": "Builder-LLM accepts the single RemoveStickyCommonEvent mapping for COMMONEVENT_STICKY. The permission is an inline literal, not a header constant, so the contract comparison is expected to stay insufficient; gate recognition for VerifyNativeToken/IsSystemApp/VerifyAccessToken combinations is not yet modeled and must remain a named gap, not a finding.",
+    "reviewRef": "REVIEW:e1acb9fcd99d14dc",
+    "sha256": "e1acb9fcd99d14dc0964f9f94a7925bd6c7a8ce45e679d6e9fc3aa4c18f2740a"
+  }
+}

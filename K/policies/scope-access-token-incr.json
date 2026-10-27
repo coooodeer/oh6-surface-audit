@@ -1,0 +1,26 @@
+{
+  "policyId": "access-token-incr",
+  "version": "1.0.0",
+  "description": "增量实验专用：access_token 的可写副本（out/autonomy/incremental/access_token），不修改 OpenHarmony 源码；仅用于文件级 shard 重建对照。",
+  "snapshotScope": "access-token-incr",
+  "roots": [{ "root": "../oh6-surface-audit/out/autonomy/incremental/access_token", "part": "security" }],
+  "compdbParts": ["security"],
+  "sourceExtensions": [".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"],
+  "cExtensions": [".c"],
+  "testPathPattern": "/(test|tests|unittest|fuzztest|mock|moduletest|systemtest)/",
+  "testFilePattern": "(_test|_unittest|_fuzzer|_mock)\\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$",
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000 },
+  "metadataSources": [
+    { "kind": "idl", "glob": "**/*.idl", "scope": "roots", "required": true },
+    { "kind": "sa", "glob": "**/sa_profile/**/*.json", "scope": "roots", "required": true },
+    { "kind": "permission", "glob": "**/*permission*.json", "scope": "roots", "required": false },
+    { "kind": "napi", "glob": null, "scope": "code-derived", "required": true },
+    { "kind": "harness", "glob": null, "scope": "definition-pending", "required": false },
+    {
+      "kind": "permission-authority",
+      "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+      "scope": "external-authority",
+      "required": false
+    }
+  ]
+}

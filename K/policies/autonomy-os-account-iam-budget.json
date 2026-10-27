@@ -1,0 +1,22 @@
+{
+  "policyId": "autonomy-os-account-iam-budget",
+  "version": "1.0.0",
+  "description": "第二组件 IAccountIAM 的 E1 off-only 预算：17 个入口任务 + 可能的操作目标子视图；maxModelRequests=0 使本轮任何 live 批次在预算校验处失败，不产生未获授权的外发。",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 500,
+    "maxInputTokens": 300000,
+    "maxOutputTokens": 60000,
+    "maxWallSeconds": 1800,
+    "maxTasks": 40,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  },
+  "notes": [
+    "off 模式必须 0 次模型调用。",
+    "maxTasks=40 覆盖 17 个 IAccountIAM 入口与至多 1 个操作目标子视图后的余量；未纳入任务的入口在覆盖账本中登记为未分析，不静默扩容。",
+    "maxToolCalls=500 来自 E0/E1 实测前的上界估计，不是性能承诺；触发时按 budget-stop 落 checkpoint。"
+  ]
+}

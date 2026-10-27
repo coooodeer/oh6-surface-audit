@@ -1,0 +1,17 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "builder-llm-2026-10-25-blind",
+  "reviewedAt": "2026-10-25T05:00:00Z",
+  "decision": "accepted",
+  "normId": "NORM:c3892dfdbbb995b9",
+  "proposalVersion": "sha256:3e6750355e64f61d22d736ebf63ea5a041e27d64fa64a2d4dc9b8ca06204129a",
+  "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+  "appliesTo": ["UnSetPolicy"],
+  "applicabilityRationale": {
+    "UnSetPolicy": "受控盲测语料：README_zh.md 的持久化权限说明 + sandbox_manager_const.h 的 ACCESS_PERSIST_PERMISSION_NAME；只用于盲测。"
+  },
+  "rationale": "Builder-LLM 为受控盲测语料接受 UnSetPolicy 的持久化权限映射；来源带 sourceSalt，仅绑定盲测快照，不外推真实组件结论。"
+}

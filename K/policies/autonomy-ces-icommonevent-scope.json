@@ -1,0 +1,67 @@
+{
+  "policyId": "autonomy-ces-icommonevent-scope",
+  "version": "1.0.0",
+  "description": "第三组件（补充事实快照 ces-r1）：base/notification/common_event_service 的 ICommonEvent 17 个 IDL 方法（含 4 个 PublishCommonEvent 重载）。只覆盖该接口，不表示 common_event_service 其余接口已审计；coverageSample.fraction=0。",
+  "scopeId": "ces-icommonevent-pilot",
+  "snapshotId": "sha256:9bbb04f8f62e125dd747e2dc410b46a0634d50515bebac6248166b3483a5f29f",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/notification/common_event_service", "part": "notification" }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl；本轮仅 ICommonEvent（entryFilter）" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.EventFwk.ICommonEvent"],
+    "entryKinds": ["idl"],
+    "note": "只纳入 ICommonEvent 的 17 个 IDL 方法；IEventReceive/IStaticSubscriber 与 NAPI/SA 不在本轮分母内。"
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.EventFwk.ICommonEvent": { "implOwnerSuffix": "CommonEventManagerService" }
+    },
+    "note": "绑定 = 方法名 + 接口级 owner 段；4 个 PublishCommonEvent 重载预期保持 suspect。"
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "operationRecipe": {
+    "kind": "member-call",
+    "receiver": "innerCommonEventManager_",
+    "separator": "->",
+    "targetClass": "InnerCommonEventManager",
+    "entryOwnerSuffix": "CommonEventManagerService",
+    "note": "CES 的同步操作形态为 innerCommonEventManager_-><Method>(...)；异步队列/lambda 与 PublishCommonEventDetailed 等成员调用本轮不冒充唯一操作。"
+  },
+  "checkVocabulary": {
+    "strong": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckSystemApp", "CheckPermission"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid", "GetCallingTokenID"],
+    "callees": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckSystemApp", "CheckPermission", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["tokenId", "callerToken", "permission", "callingUid", "callingTokenId"],
+    "note": "CES 的调用方门禁主要是 AccessTokenHelper::VerifyNativeToken / IsSystemApp / VerifyAccessToken 及其组合；未建模前保持具名缺口。"
+  },
+  "gateVocabulary": {
+    "checkCallees": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp"],
+    "gateTokens": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp"],
+    "identityTokens": ["tokenId", "callerToken", "isSubsystem", "VerifyNativeToken", "IsSystemApp", "VerifyAccessToken"],
+    "note": "把 CES 实际出现的身份 token 登记到本 scope；它们会被识别为“有调用方条件但形状未建模”的具名缺口，而不是静默当作无门禁。默认 scope 不配置该字段，pilot 复算不变。"
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc",
+    "note": "本轮不做文件抽样；288 个文件中除 ICommonEvent/CommonEventManagerService 相关实现外均未分析。"
+  },
+  "limits": {
+    "maxIndexFunctions": 5000,
+    "maxIndexCalls": 30000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  },
+  "limitsNote": "CES 快照实测 3,232 函数 / 19,200 calls，低于上限；非性能结论。"
+}

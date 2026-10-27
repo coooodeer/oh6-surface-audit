@@ -1,0 +1,25 @@
+{
+  "policyId": "autonomy-access-token-arkts-direct-v2",
+  "version": "1.0.0",
+  "scopeId": "r3-access-token-arkts-privacy-on-v2",
+  "snapshotId": "sha256:1a2bc61ea705f9a01a25a8a8dd9cce2be6b3dd1e55b14f75e7aaea4be7754cc4",
+  "roots": [{ "root": "base/security/access_token", "part": "security" }],
+  "entrySources": [{ "kind": "arkts-export", "enabled": true }],
+  "entryFilter": { "entryKinds": ["arkts-export"], "methods": ["on"] },
+  "aniBinding": {
+    "shape": "direct-namespace",
+    "method": "on",
+    "nativeName": "onExecute",
+    "handler": "RegisterPermActiveStatusCallback",
+    "namespace": "privacyManager",
+    "library": "privacy_ani",
+    "etsFile": "base/security/access_token/frameworks/ets/ani/privacy/ets/@ohos.privacyManager.ets",
+    "cppFile": "base/security/access_token/frameworks/ets/ani/privacy/src/privacy_manager.cpp",
+    "buildFile": "base/security/access_token/frameworks/ets/ani/privacy/BUILD.gn",
+    "buildSha256": "666b2839272512b0ff5cc895e139bf34408aaf98ec6b4d13788740440b91b74a"
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".ets"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

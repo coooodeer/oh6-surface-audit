@@ -1,0 +1,66 @@
+{
+  "policyId": "autonomy-os-account-account-scope",
+  "version": "1.0.0",
+  "description": "第二组件第二接口：base/account/os_account 的 IAccount（16 个 IDL 方法，含 QueryDistributedVirtualDeviceId 两个重载）。只覆盖该接口，不表示 os_account 其余接口已审计；coverageSample.fraction=0。",
+  "scopeId": "os-account-account-pilot",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/account/os_account", "part": "account" }
+  ],
+  "dependencyReadRoots": [
+    {
+      "path": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-distributed-account-sys.md",
+      "purpose": "IAccount 的分布式账号权限声明来源（Builder 提案固定整文件 sha256 与声明行）",
+      "sha256": "247ad01b7480eeeb908329c087556a71991131d747b6a9c10160052e1b078b78"
+    }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl；本轮仅 IAccount（entryFilter）" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.AccountSA.IAccount"],
+    "entryKinds": ["idl"],
+    "note": "只纳入 IAccount 的 16 个 IDL 方法；SA/NAPI/OnRemoteRequest 与文件抽样不在本轮分母内。"
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.AccountSA.IAccount": { "implOwnerSuffix": "AccountMgrService" }
+    },
+    "note": "绑定 = 方法名 + 接口级 owner 段；同名重载（QueryDistributedVirtualDeviceId）保持 suspect。"
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "operationRecipe": {
+    "instanceExpression": "OhosAccountManager::GetInstance",
+    "targetClass": "OhosAccountManager",
+    "entryOwnerSuffix": "AccountMgrService",
+    "note": "仅覆盖 OhosAccountManager::GetInstance().<Method>(...) 这一种操作形态；IAccount 还有 innerManager_.X、InnerQueryOsAccountDistributedInfo、GetOsAccountDistributedInfoInner 等成员调用与多操作路径，本轮不套用 IAM recipe，保持具名不足。"
+  },
+  "checkVocabulary": {
+    "strong": ["HasAccountRequestPermission", "PermissionCheck", "CheckSystemApp", "VerifyAccessToken", "CheckPermission"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid", "GetCallingTokenID"],
+    "callees": ["HasAccountRequestPermission", "PermissionCheck", "CheckSystemApp", "VerifyAccessToken", "CheckPermission", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["permission", "permissionName", "callingUid", "callingTokenID"],
+    "note": "本接口的调用方权限门主要是 HasAccountRequestPermission(PERM) 与 PermissionCheck(PERM, CONSTRAINT) 两种本地 helper，另有 CheckSystemApp() 前置；它们的形状与本轮门禁词表不兼容时保留具名缺口。"
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc",
+    "note": "本轮不做文件抽样；1,025 个文件中除 IAccount/AcountMgrService 相关实现外均未分析。"
+  },
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  },
+  "limitsNote": "与 IAM scope 相同：只为容纳本组件完整索引，实际 7,014 函数 / 42,631 calls，非性能结论。"
+}

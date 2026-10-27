@@ -1,0 +1,20 @@
+{
+  "policyId": "autonomy-r2-promote-budget",
+  "version": "1.0.0",
+  "description": "R2 promote 消费验证预算：off、0 模型调用、任务数受 --max-tasks 限制。",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 40,
+    "maxInputTokens": 50000,
+    "maxOutputTokens": 2000,
+    "maxWallSeconds": 600,
+    "maxTasks": 2,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 10,
+    "maxConcurrentTools": 2,
+    "maxConcurrentModels": 1
+  },
+  "notes": [
+    "仅用于验证派生快照可作为 run 固定输入；不产出任何裁决声明。"
+  ]
+}

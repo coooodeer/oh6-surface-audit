@@ -1,0 +1,50 @@
+{
+  "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+  "knowledgeVersion": "sha256:395d9b17f6cac97ba093fd2dbe6d21c20a5f27694c703947e34011f2c6815d66",
+  "norm": {
+    "normId": "NORM:4abbc54b1a137065",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-osAccount-sys.md",
+      "line": 4468,
+      "sha256": "961dcf0a8679600f427905e2ad086b4ce9afbd6cbee6d096fea8d4e10dfd64c9",
+      "text": "**需要权限：** ohos.permission.MANAGE_USER_IDM"
+    },
+    "permission": "ohos.permission.MANAGE_USER_IDM",
+    "header": {
+      "file": "base/account/os_account/services/accountmgr/src/account_iam/account_iam_service.cpp",
+      "sha256": "ce4e0db2fcdca06082ddf2a328d4846c0ec96cc509eb73a0865f7ebaf9fff5e5",
+      "factRef": "F:000000000000:file:ee23977de1fa1199"
+    },
+    "appliesTo": [
+      "OpenSession"
+    ],
+    "limitation": "受控盲测语料：只覆盖 OpenSession 的受控变异体；不外推为真实组件结论。",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:53fa133023d885ed"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "builder-llm-2026-10-25-blind",
+    "reviewedAt": "2026-10-25T05:00:00Z",
+    "decision": "accepted",
+    "normId": "NORM:4abbc54b1a137065",
+    "proposalVersion": "sha256:eeaff506f453dc9923e69a09118fbb503848b8d9c09575b73e724695b0cf9351",
+    "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+    "appliesTo": [
+      "OpenSession"
+    ],
+    "applicabilityRationale": {
+      "OpenSession": "受控盲测语料：js-apis-osAccount-sys.md:4468 的 MANAGE_USER_IDM 声明 + account_iam_service.cpp 的 PERMISSION_MANAGE_USER_IDM；只用于盲测。"
+    },
+    "rationale": "Builder-LLM 为受控盲测语料接受 OpenSession 的 MANAGE_USER_IDM 映射；来源带 sourceSalt，仅绑定盲测快照，不外推真实组件结论。",
+    "reviewRef": "REVIEW:53fa133023d885ed",
+    "sha256": "53fa133023d885edee276dda7aaa89d7ed6049999ae7c3ec29f78f7e54befba1"
+  }
+}

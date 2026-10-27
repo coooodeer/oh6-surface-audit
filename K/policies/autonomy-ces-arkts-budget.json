@@ -1,0 +1,17 @@
+{
+  "policyId": "autonomy-ces-arkts-budget",
+  "version": "1.0.0",
+  "description": "R3 CES ArkTS export subset offline run; no model requests.",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 400,
+    "maxInputTokens": 300000,
+    "maxOutputTokens": 60000,
+    "maxWallSeconds": 1800,
+    "maxTasks": 25,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  }
+}

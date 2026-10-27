@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const ids = require('../lib/autonomy/ids');
 const factsLib = require('../lib/autonomy/facts');
@@ -106,4 +108,85 @@ test('Builder review accepts exact async delegation but not stale source or inve
   stale.verifyFile = () => ({ ok: false, reason: 'stale-input' });
   assert.throws(() => knowledgeLib.loadPublished(path.join(knowledgeLib.PUBLISHED_DIR,
     accepted.knowledgeVersion.slice(7), 'knowledge.json'), null, stale), /stale-input/);
+});
+
+// ---------------------------------------------------------------------------
+// §24.28 阶段 A：来源描述符 / 文档事实 / 适用范围分离；通用 suite；策略锚点。
+// ---------------------------------------------------------------------------
+
+test('pilot source descriptors reproduce published norms byte-identically and reject unknown permissions', () => {
+  const facts = factsLib.AutonomyFacts.open({ snapshot: scope.snapshotId, scope });
+  assert.equal(knowledgeLib.PILOT_SOURCES.length, 2);
+  for (const [source, version] of [
+    [knowledgeLib.PILOT_SOURCES[0], '050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c'],
+    [knowledgeLib.PILOT_SOURCES[1], '7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f']
+  ]) {
+    const proposal = knowledgeLib.proposalFor(facts, source.permission);
+    const published = knowledgeLib.loadPublished(path.join(knowledgeLib.PUBLISHED_DIR, version, 'knowledge.json'),
+      null, facts);
+    assert.equal(proposal.norm.normId, published.norm.normId, source.id);
+    assert.equal(proposal.knowledgeVersion, published.review.proposalVersion, source.id);
+    assert.equal(knowledgeLib.sourceByPermission(source.permission).id, source.id);
+  }
+  assert.equal(knowledgeLib.sourceByPermission('ohos.permission.NOWHERE'), null);
+  assert.throws(() => knowledgeLib.proposalFor(facts, 'ohos.permission.NOWHERE'),
+    /authorization-norm-unsupported/);
+});
+
+test('knowledge suite is generic: single version loads and method conflicts are rejected', () => {
+  const facts = factsLib.AutonomyFacts.open({ snapshot: scope.snapshotId, scope });
+  const single = knowledgeLib.loadKnowledgeSuite([path.join(knowledgeLib.PUBLISHED_DIR,
+    '050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c', 'knowledge.json')], facts);
+  assert.equal(single.byMethod.size, 2);
+  const pair = knowledgeLib.loadKnowledgeSuite([path.join(knowledgeLib.PUBLISHED_DIR,
+    '050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c', 'knowledge.json'),
+  path.join(knowledgeLib.PUBLISHED_DIR,
+    '7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f', 'knowledge.json')], facts);
+  assert.equal(pair.byMethod.size, 16);
+  assert.throws(() => knowledgeLib.loadKnowledgeSuite([path.join(knowledgeLib.PUBLISHED_DIR,
+    '050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c', 'knowledge.json'),
+  path.join(knowledgeLib.PUBLISHED_DIR,
+    '050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c', 'knowledge.json')], facts),
+  /knowledge-suite-duplicate-or-unreviewed/);
+  assert.throws(() => knowledgeLib.loadKnowledgeSuite([], facts), /knowledge-suite-requires/);
+});
+
+test('security policy anchors pin external files by hash and bound subject capability without set inclusion', () => {
+  const policy = require('../lib/autonomy/policy');
+  const facts = factsLib.AutonomyFacts.open({ snapshot: scope.snapshotId, scope });
+  const pol = policy.load(facts);
+  assert.equal(pol.permissionDefinitions.entries['ohos.permission.SET_SANDBOX_POLICY'].availableLevel,
+    'system_core');
+  assert.equal(pol.permissionDefinitions.entries['ohos.permission.SET_SANDBOX_POLICY'].provisionEnable, true);
+  // §24.28 复核修正：ACL 使能的权限可获得性依赖部署签名配置，等级不单独排除持有。
+  assert.deepEqual(policy.subjectCanHold(pol, 'ohos.permission.SET_SANDBOX_POLICY'),
+    { status: 'unknown', reason: 'acl-enabled-obtainability-deployment-dependent',
+      basis: 'system_core/SYSTEM/acl-enabled' });
+  assert.deepEqual(policy.subjectCanHold(pol, 'ohos.permission.FILE_ACCESS_PERSIST'),
+    { status: 'yes', basis: 'normal/NORMAL' });
+  assert.equal(policy.anchorQualifies(pol, 'ohos.permission.SET_SANDBOX_POLICY').qualified, false);
+  assert.equal(policy.anchorQualifies(pol, 'ohos.permission.SET_SANDBOX_POLICY').reason,
+    'acl-enabled-obtainability-deployment-dependent');
+  assert.equal(policy.anchorQualifies(pol, 'ohos.permission.FILE_ACCESS_PERSIST').cap, 'candidate');
+  assert.equal(policy.subjectCanHold(pol, 'ohos.permission.UNKNOWN').status, 'unknown');
+  // 等级排除且 ACL 未使能的权限才可支撑 finding（受控桩，非本仓真实权限）。
+  const stub = { ...pol, permissionDefinitions: { ...pol.permissionDefinitions,
+    entries: { ...pol.permissionDefinitions.entries,
+      'ohos.permission.TEST_ACL_OFF': { availableLevel: 'system_core', availableType: 'SYSTEM',
+        grantMode: 'system_grant', since: 1, provisionEnable: false } } } };
+  assert.deepEqual(policy.subjectCanHold(stub, 'ohos.permission.TEST_ACL_OFF'),
+    { status: 'no', basis: 'system_core/SYSTEM/acl-disabled' });
+  assert.equal(policy.anchorQualifies(stub, 'ohos.permission.TEST_ACL_OFF').qualified, true);
+
+  // 锚点文件漂移必须拒绝：改写锚点文档中的固定哈希。
+  const anchorsDoc = JSON.parse(fs.readFileSync(policy.ANCHORS_FILE, 'utf8'));
+  const drifted = path.join(os.tmpdir(), `anchors-drift-${process.pid}.json`);
+  fs.writeFileSync(drifted, JSON.stringify({
+    ...anchorsDoc, permissionDefinitions: { ...anchorsDoc.permissionDefinitions, sha256: '0'.repeat(64) }
+  }), 'utf8');
+  try {
+    assert.throws(() => policy.load(facts, drifted), /policy-anchor-stale/);
+  } finally {
+    fs.rmSync(drifted, { force: true });
+  }
 });

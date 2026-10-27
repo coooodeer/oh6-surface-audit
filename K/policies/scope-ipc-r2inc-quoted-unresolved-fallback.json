@@ -1,0 +1,77 @@
+{
+  "policyId": "ipc-r1",
+  "version": "1.0.0",
+  "description": "R2-C 场景 scope：ipc-r2inc-quoted-unresolved-fallback（受控副本，不指产品树）",
+  "snapshotScope": "ipc-r2inc-quoted-unresolved-fallback",
+  "roots": [
+    {
+      "root": "../r2-work/ipc-r2inc/work",
+      "part": "communication"
+    },
+    {
+      "root": "../r2-work/ipc-r2inc/work-extra/hilog",
+      "part": "hiviewdfx"
+    }
+  ],
+  "compdbParts": [
+    "communication"
+  ],
+  "sourceExtensions": [
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".hxx"
+  ],
+  "cExtensions": [
+    ".c"
+  ],
+  "testPathPattern": "/(test|tests|unittest|fuzztest|mock|moduletest|systemtest)/",
+  "testFilePattern": "(_test|_unittest|_fuzzer|_mock)\\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$",
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000
+  },
+  "metadataSources": [
+    {
+      "kind": "idl",
+      "glob": "**/*.idl",
+      "scope": "roots",
+      "required": false
+    },
+    {
+      "kind": "sa",
+      "glob": "**/sa_profile/**/*.json",
+      "scope": "roots",
+      "required": false
+    },
+    {
+      "kind": "permission",
+      "glob": "**/*permission*.json",
+      "scope": "roots",
+      "required": false
+    },
+    {
+      "kind": "napi",
+      "glob": null,
+      "scope": "code-derived",
+      "required": true
+    },
+    {
+      "kind": "harness",
+      "glob": null,
+      "scope": "definition-pending",
+      "required": false
+    },
+    {
+      "kind": "permission-authority",
+      "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+      "scope": "external-authority",
+      "required": false
+    }
+  ],
+  "derivedFrom": "scope-ipc-r1.json"
+}

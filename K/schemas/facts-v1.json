@@ -40,7 +40,7 @@
         "bytes": { "type": "integer" },
         "lines": { "type": "integer" },
         "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-        "language": { "enum": ["c", "cpp"] }
+        "language": { "enum": ["c", "cpp", "arkts", "rust"] }
       }
     },
     "function": {

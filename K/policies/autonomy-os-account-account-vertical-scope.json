@@ -1,0 +1,42 @@
+{
+  "policyId": "autonomy-os-account-account-vertical-scope",
+  "version": "1.0.0",
+  "description": "IAccount 单入口纵向验证：SetOsAccountDistributedInfo。目标是验证 CheckSystemApp + HasAccountRequestPermission helper 门禁与 OhosAccountStateChange 重载操作定位，不扩展为整接口审计。",
+  "scopeId": "os-account-account-vertical",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "staticSuite": true,
+  "roots": [{ "root": "base/account/os_account", "part": "account" }],
+  "entrySources": [{ "kind": "idl", "enabled": true }],
+  "entryFilter": {
+    "interfaces": ["OHOS.AccountSA.IAccount"],
+    "entryKinds": ["idl"],
+    "methods": ["SetOsAccountDistributedInfo"]
+  },
+  "modelMetadata": {
+    "interfaces": { "OHOS.AccountSA.IAccount": { "implOwnerSuffix": "AccountMgrService" } }
+  },
+  "binding": { "minNameLength": 3, "ownerMustEqual": true, "ambiguousIsInsufficient": true },
+  "operationRecipe": {
+    "instanceExpression": "OhosAccountManager::GetInstance",
+    "targetClass": "OhosAccountManager",
+    "entryOwnerSuffix": "AccountMgrService",
+    "disambiguate": "argument-type",
+    "note": "SetOsAccountDistributedInfo 调用 OhosAccountStateChange 的两个 argc=3 重载；用入口签名参数类型与目标签名做有界消歧，无法唯一时不产出候选。"
+  },
+  "gateVocabulary": {
+    "checkCallees": ["CheckPermission", "HasAccountRequestPermission", "VerifyAccessToken"],
+    "gateTokens": ["HasAccountRequestPermission"],
+    "identityTokens": [],
+    "systemAppShape": true,
+    "note": "CheckSystemApp 以赋值变量 + if(var != ERR_OK) 识别；HasAccountRequestPermission 由 helper 体 VerifyAccessToken + PERMISSION_GRANTED 解析。"
+  },
+  "checkVocabulary": {
+    "strong": ["CheckPermission", "HasAccountRequestPermission", "VerifyAccessToken", "CheckSystemApp"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid"],
+    "callees": ["CheckPermission", "HasAccountRequestPermission", "VerifyAccessToken", "CheckSystemApp", "GetCallingUid"]
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

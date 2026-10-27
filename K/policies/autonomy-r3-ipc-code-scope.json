@@ -1,0 +1,27 @@
+{
+  "policyId": "autonomy-r3-ipc-code-scope",
+  "version": "1.0.0",
+  "scopeId": "r3-ipc-code-dbinder-switch",
+  "snapshotId": "sha256:562bf189f6cb08f1bbdc4cb4838aae7f9e50ebcc8b54450b9cc875d18ddec5ca",
+  "roots": [{ "root": "foundation/communication/ipc", "part": "communication" }],
+  "entrySources": [{ "kind": "on-remote-request", "enabled": true },
+    { "kind": "ipc-code", "enabled": true }],
+  "entryFilter": { "entryKinds": ["on-remote-request", "ipc-code"],
+    "exactOnRemoteRequest": true },
+  "ipcDispatch": {
+    "codeHeader": "foundation/communication/ipc/interfaces/innerkits/ipc_core/include/ipc_types.h",
+    "codeHeaderSha256": "920ab13f87c3de9fe053a923988684aed1943ced0aa6669b826b1169ba27a28e",
+    "buildProofs": [
+      { "file": "foundation/communication/ipc/interfaces/innerkits/ipc_single/BUILD.gn",
+        "sha256": "6d0dabf543891146890c7d6041e861e7e46a2254fd5cf21d2cfb3ac2e43038a4",
+        "source": "foundation/communication/ipc/ipc/native/src/core/dbinder/source/dbinder_callback_stub.cpp" },
+      { "file": "foundation/communication/ipc/interfaces/innerkits/libdbinder/BUILD.gn",
+        "sha256": "699b9afc66ff238615a0f0e1636d8a0e52cb12546f309569f5d2790f035dbccf",
+        "source": "foundation/communication/ipc/dbinder/dbinder_service/src/dbinder_service_stub.cpp" }
+    ]
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

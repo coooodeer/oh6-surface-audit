@@ -1,0 +1,28 @@
+{
+  "policyId": "autonomy-security-anchors-ces",
+  "version": "1.0.0",
+  "description": "第三组件 ICommonEvent 的 securityDecision 预期策略锚点。与 pilot/os_account 锚点分离；外部文件按 sha256 固定，漂移即拒绝。",
+  "permissionDefinitions": {
+    "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+    "sha256": "b710d15054d7d04fb3d72d6741bba5831fab96b56f8996b348c2ec8eaf5f5da2",
+    "permissions": [
+      "ohos.permission.COMMONEVENT_STICKY"
+    ],
+    "derivation": "COMMONEVENT_STICKY 为 normal / system_grant / provisionEnable=true：normal 应用可申请，系统授权即可持有。因此该权限元数据只能说明“不持有该权限的主体被实际门禁拒绝”时可做 scoped 排除，不能证明“此入口此对象本应要求该权限”；正向安全命题上限 candidate（permission-obtainable-by-subject）。",
+    "normalApplicationSubject": {
+      "kind": "normal-application",
+      "holdsPermissionsOfLevels": ["normal"],
+      "cannotHoldPermissionsOfLevels": ["system_basic", "system_core"]
+    }
+  },
+  "saProfile": {
+    "file": "base/notification/common_event_service/sa_profile/3299.json",
+    "sha256": "c23edcf238179cda8d3dd317c092c77d725b5fc9e3c5a1806465e679529ac172",
+    "process": "foundation",
+    "systemAbilityId": 3299,
+    "derivation": "SA profile 声明 common event service 运行于 foundation 进程；只提供进程归属事实，不单独确立接口的预期授权策略。"
+  },
+  "docOnlyPolicyCap": "candidate",
+  "aclNote": "权限为 normal 级，normal 应用可获得；锚点不支撑基于权限等级的 finding。",
+  "note": "文档原文与 Builder 自审假设不是本锚点；仅以它们为预期策略的安全命题上限为 candidate（指南 §15.4）。"
+}

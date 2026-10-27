@@ -23,7 +23,7 @@ test('static suite resumes with pinned knowledge and proof at a task boundary', 
     'K/norms/050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c/knowledge.json',
     'K/norms/7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f/knowledge.json'
   ].join(',');
-  const args = ['--mode=off', '--scope=K/policies/autonomy-pilot-scope.json',
+  const args = ['--mode=off', '--legacy-contract', '--scope=K/policies/autonomy-pilot-scope.json',
     '--budget=K/policies/autonomy-pilot-budget.json'];
   const clean = cli('run', ...args, '--knowledge=' + knowledge);
   assert.equal(clean.status, 0, clean.stderr);

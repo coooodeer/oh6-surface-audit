@@ -1,0 +1,22 @@
+{
+  "policyId": "access-token-r3-arkts",
+  "version": "1.0.0",
+  "description": "R3 access_token ArkTS export subset; unsupported syntax and other languages remain explicit.",
+  "snapshotScope": "access-token-r3-arkts",
+  "roots": [{ "root": "base/security/access_token", "part": "security" }],
+  "compdbParts": ["security"],
+  "sourceExtensions": [".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx", ".ets"],
+  "cExtensions": [".c"],
+  "testPathPattern": "/(test|tests|unittest|fuzztest|mock|moduletest|systemtest)/",
+  "testFilePattern": "(_test|_unittest|_fuzzer|_mock)\\.(c|cc|cpp|cxx|h|hh|hpp|hxx|ets)$",
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000 },
+  "metadataSources": [
+    { "kind": "idl", "scope": "roots", "required": true },
+    { "kind": "sa", "scope": "roots", "required": true },
+    { "kind": "permission", "scope": "roots", "required": false },
+    { "kind": "napi", "scope": "code-derived", "required": true },
+    { "kind": "harness", "scope": "definition-pending", "required": false },
+    { "kind": "permission-authority", "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json", "scope": "external-authority", "required": false }
+  ],
+  "derivedFrom": "scope-access-token-r2.json"
+}

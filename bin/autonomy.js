@@ -36,13 +36,39 @@ const assessment = require('../lib/autonomy/assessment');
 const reportLib = require('../lib/autonomy/report');
 const verticalLib = require('../lib/autonomy/vertical');
 const staticProofLib = require('../lib/autonomy/static-proof');
+const ipcVerdictLib = require('../lib/autonomy/ipc-verdict');
 const permissionArgumentLib = require('../lib/autonomy/permission-argument');
 const branchLib = require('../lib/autonomy/branch');
 const recoveryLib = require('../lib/autonomy/recovery');
 const verificationLib = require('../lib/autonomy/verification');
 const knowledgeLib = require('../lib/autonomy/knowledge');
+const policyLib = require('../lib/autonomy/policy');
 const doctorLib = require('../lib/autonomy/doctor');
 const platform = require('../lib/autonomy/platform');
+
+const SECURITY_VERDICT_VERSION = '1.0.20-security-verdict';
+const SA_METHOD_VERSION = '1.0.21-sa-method-verdict';
+const IPC_CODE_VERSION = '1.0.22-ipc-code-verdict';
+const RUST_IPC_CODE_VERSION = '1.0.23-rust-ipc-code-verdict';
+const SECURITY_VERDICT_VERSIONS = [SECURITY_VERDICT_VERSION, SA_METHOD_VERSION, IPC_CODE_VERSION,
+  RUST_IPC_CODE_VERSION];
+const IPC_VERDICT_VERSIONS = [IPC_CODE_VERSION, RUST_IPC_CODE_VERSION];
+
+/** 1.0.22/1.0.23 各自的门禁族与固定判词；旧 shape 文本不变，避免旧 run 复算漂移。 */
+function ipcGateFamily(shape) {
+  return shape === 'rust-enum' ? 'cross-user-system-hap-permission' : 'root-or-native';
+}
+const IPC_PRESENCE_RATIONALE = {
+  'root-or-native': 'The scoped handler calls the root/native identity checks.',
+  'cross-user-system-hap-permission':
+    'The scoped handler gates Tag::UserId queries with system-HAP, permission and caller-user-range checks.'
+};
+const IPC_DOMINANCE_RATIONALE = {
+  'root-or-native': 'The scoped identity rejection returns before reading tokenID and invoking Delete.',
+  'cross-user-system-hap-permission':
+    'The scoped identity rejection returns before any asset database access.'
+};
+const AUTONOMOUS_TRACE_VERSIONS = ['1.0.19-autonomous-static', SECURITY_VERDICT_VERSION, SA_METHOD_VERSION];
 
 const TOOL_DIR = path.resolve(__dirname, '..');
 const K_DIR = path.join(TOOL_DIR, 'K');
@@ -94,7 +120,11 @@ function parseFlags(argv) {
     if (arg === 'help') { opts.cmd = 'help'; continue; }
     if (!arg.startsWith('--')) throw new CliError(`unknown argument: ${arg}`);
     const eq = arg.indexOf('=');
-    if (eq < 0) throw new CliError(`flag requires value: ${arg}`);
+    if (eq < 0) {
+      if (arg === '--security-verdict') { opts.flags['security-verdict'] = true; continue; }
+      if (arg === '--legacy-contract') { opts.flags['legacy-contract'] = true; continue; }
+      throw new CliError(`flag requires value: ${arg}`);
+    }
     opts.flags[arg.slice(2, eq)] = arg.slice(eq + 1);
   }
   return opts;
@@ -142,18 +172,21 @@ function loadTrustedReviewKey(flagValue) {
 }
 
 function cmdKnowledgePropose(opts) {
-  if (opts.flags['doc-set'] !== 'sandbox-manager-pilot') {
-    throw new CliError('knowledge propose requires --doc-set=sandbox-manager-pilot');
+  const docSet = opts.flags['doc-set'];
+  const docSets = knowledgeLib.DOC_SETS;
+  if (!docSet || !docSets[docSet]) {
+    throw new CliError(`knowledge propose requires --doc-set=<${Object.keys(docSets).join('|')}>`);
   }
   const scope = loadScope(opts.flags.scope);
   const facts = openFacts(scope, opts.flags.snapshot);
-  const norm = opts.flags.norm || 'SetPolicy';
-  if (!['SetPolicy', 'UnSetPolicy'].includes(norm)) throw new CliError('unsupported knowledge norm');
-  const proposal = norm === 'SetPolicy' ? knowledgeLib.loadAuthorization(facts)
-    : knowledgeLib.loadPersistenceAuthorization(facts);
+  const keys = Object.keys(docSets[docSet]);
+  const norm = opts.flags.norm || keys[0];
+  if (!keys.includes(norm)) throw new CliError(`unsupported knowledge norm: ${norm}`);
+  const proposal = knowledgeLib.loadFromDocSet(facts, docSet, norm);
   const file = knowledgeLib.writeProposal(proposal);
-  emit({ state: 'proposed', normId: proposal.norm.normId, snapshotId: facts.snapshotId,
-    proposalVersion: proposal.knowledgeVersion, file: path.relative(TOOL_DIR, file).split(path.sep).join('/') });
+  emit({ state: 'proposed', docSet, norm, normId: proposal.norm.normId, snapshotId: facts.snapshotId,
+    proposalVersion: proposal.knowledgeVersion, appliesTo: proposal.norm.appliesTo,
+    file: path.relative(TOOL_DIR, file).split(path.sep).join('/') });
   return EXIT.OK;
 }
 
@@ -268,6 +301,11 @@ async function cmdRun(opts) {
   const scope = loadScope(opts.flags.scope);
   const budgetPolicy = loadBudget(opts.flags.budget, opts.flags['max-model-requests']);
   const mode = opts.flags.mode || 'off';
+  const ipcCodeVerdict = Boolean(scope.ipcCodeVerdict);
+  if (ipcCodeVerdict && (mode !== 'off' || resuming || opts.flags.knowledge || opts.flags['security-verdict'] ||
+      opts.flags['legacy-contract'] || opts.flags.experiment || opts.flags['replay-run'])) {
+    throw new CliError('ipc-code verdict requires a new off run without knowledge, model or experiment');
+  }
   if (!modelLib.MODES.includes(mode)) throw new CliError(`bad --mode: ${mode}`);
   const experiment = resuming ? created.detail.experiment : (opts.flags.experiment || null);
   const verticalExperiment = ['vertical-v1', 'vertical-v2'].includes(experiment);
@@ -303,15 +341,47 @@ async function cmdRun(opts) {
   let verticalKnowledge = verticalExperiment ? (selectedEntry?.method === 'UnSetPolicyAsync'
     ? knowledgeLib.loadPersistenceAuthorization(facts) : knowledgeLib.loadAuthorization(facts)) : null;
   let staticSuite = null;
+  let securityPolicy = null;
+  // 1.0.30：静态套件默认走 1.0.20 双命题语义；--legacy-contract 显式保留旧契约出口。
+  const legacyContract = Boolean(opts.flags['legacy-contract']);
+  const securityVerdict = ipcCodeVerdict || (!resuming && !legacyContract && !verticalExperiment &&
+    Boolean(opts.flags['security-verdict'] || opts.flags.knowledge));
+  if (opts.flags['security-verdict'] && (verticalExperiment || !opts.flags.knowledge || resuming)) {
+    throw new CliError('--security-verdict requires a new static suite --knowledge run (no vertical experiment)');
+  }
+  if (legacyContract && verticalExperiment) {
+    throw new CliError('--legacy-contract requires a static suite --knowledge run');
+  }
+  if (legacyContract && !resuming && !opts.flags.knowledge) {
+    throw new CliError('--legacy-contract requires a static suite --knowledge run');
+  }
+  if (legacyContract && opts.flags['security-verdict']) {
+    throw new CliError('--legacy-contract and --security-verdict are mutually exclusive');
+  }
   if (opts.flags['knowledge-review']) throw new CliError('run requires a published --knowledge version; direct review is not a version');
   const knowledgeFiles = resumingStaticSuite ? previousStore.readJson('static-knowledge.json').versions
     .map((version) => path.join(knowledgeLib.PUBLISHED_DIR, version.slice(7), 'knowledge.json'))
     : opts.flags.knowledge?.split(',').map(resolvePath);
   if (knowledgeFiles) {
     if (!verticalExperiment) {
-      if (scope.scopeId !== 'sandbox_manager-pilot') throw new CliError('static suite requires sandbox_manager-pilot scope');
+      // 静态套件默认只允许 pilot；第二组件 scope 必须显式声明 staticSuite=true（E1 起）。
+      if (scope.scopeId !== 'sandbox_manager-pilot' && scope.staticSuite !== true) {
+        throw new CliError('static suite requires sandbox_manager-pilot or a scope with staticSuite=true');
+      }
       try { staticSuite = knowledgeLib.loadKnowledgeSuite(knowledgeFiles, facts); }
       catch (e) { throw new CliError(`knowledge suite rejected: ${e.message}`); }
+      if (securityVerdict) {
+        // --security-anchors 指向受控锚点文件（默认 K/policies/autonomy-security-anchors.json）；
+        // 文件与权限定义按登记哈希固定，漂移即拒绝。
+        const anchorsPath = opts.flags['security-anchors']
+          ? resolvePath(opts.flags['security-anchors']) : policyLib.ANCHORS_FILE;
+        if (!fs.existsSync(anchorsPath)) {
+          throw new CliError(`security anchors file not found: ${opts.flags['security-anchors']}`,
+            EXIT.ARG, 'policy-anchor-missing');
+        }
+        try { securityPolicy = policyLib.load(facts, anchorsPath); }
+        catch (e) { throw new CliError(`security policy anchors rejected: ${e.message}`, EXIT.ARG, 'policy-anchor-invalid'); }
+      }
     } else {
     try {
       verticalKnowledge = knowledgeLib.loadPublished(knowledgeFiles[0],
@@ -332,6 +402,7 @@ async function cmdRun(opts) {
     } catch (e) { if (e instanceof CliError) throw e; throw new CliError(`knowledge version rejected: ${e.message}`); }
     }
   }
+  if (ipcCodeVerdict) staticSuite = { byMethod: new Map(), versions: [], knowledgeVersion: null };
   if (opts.flags['review-public-key'] && !opts.flags.knowledge) {
     throw new CliError('--review-public-key requires --knowledge');
   }
@@ -360,7 +431,8 @@ async function cmdRun(opts) {
         [...replaySource.calls.values()].some((call) => call.finishReason !== 'stop')) {
       throw new CliError('replay source has an incomplete model response');
     }
-    if (staticSuite && !['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(replaySource.architectureVersion)) {
+    if (staticSuite && !['1.0.18-static-arbitration', '1.0.19-autonomous-static',
+        ...SECURITY_VERDICT_VERSIONS].includes(replaySource.architectureVersion)) {
       throw new CliError('static suite replay requires a matching live source');
     }
     if (experiment === 'vertical-v2' &&
@@ -405,6 +477,7 @@ async function cmdRun(opts) {
   const resumeFingerprint = ids.sha256Hex(ids.canonicalJson({ scope: scopeDocument, budget: budgetPolicy,
     snapshotId: facts.snapshotId, inputManifestId: manifestId,
     knowledgeVersion: (staticSuite || verticalKnowledge)?.knowledgeVersion || null,
+    policyFingerprint: securityPolicy ? policyLib.fingerprint(securityPolicy) : null,
     mode, experiment, modelId: selectedModelId,
     ...(pinnedImplementation ? { implementationFingerprint: pinnedImplementation } : {}) }));
   let prepared = null;
@@ -436,7 +509,12 @@ async function cmdRun(opts) {
     capabilityProfile,
     budget: budgetPolicy,
     manifestId,
-      architectureVersion: staticSuite ? '1.0.19-autonomous-static' : experiment === 'vertical-v2' ? (verticalKnowledge?.norm?.authority === 'builder-llm-review'
+      architectureVersion: staticSuite ? (securityVerdict
+        ? (ipcCodeVerdict ? (scope.ipcCodeVerdict.shape === 'rust-enum'
+          ? RUST_IPC_CODE_VERSION : IPC_CODE_VERSION)
+          : scope.saMethodBinding ? SA_METHOD_VERSION : SECURITY_VERDICT_VERSION)
+        : '1.0.19-autonomous-static')
+        : experiment === 'vertical-v2' ? (verticalKnowledge?.norm?.authority === 'builder-llm-review'
         ? '1.0.14-static-experiment' : '1.0.13-vertical-experiment')
         : experiment === 'vertical-v1' ? '1.0.5-vertical-experiment'
       : (experiment ? '1.0.2-auth-experiment' : '1.0.16-static-scan'),
@@ -445,7 +523,13 @@ async function cmdRun(opts) {
   });
   // 台账必须挂在 run 目录上；网关在 store 之前创建是为了先做 key 预检
   gateway.store = store;
-  if (!resuming) store.updateManifest({ resumeFingerprint, toolTraceVersion: '1', implementationFingerprint });
+  if (!resuming) store.updateManifest({ resumeFingerprint, toolTraceVersion: '1', implementationFingerprint,
+    ...(scope.__path ? { scopePolicy: {
+      file: path.relative(TOOL_DIR, scope.__path).split(path.sep).join('/'),
+      sha256: storeLib.sha256File(scope.__path) } } : {}),
+    ...(securityPolicy ? { securityVerdict: { anchorsFile: securityPolicy.anchorsFile,
+      anchorsSha256: securityPolicy.anchorsSha256,
+      policyFingerprint: policyLib.fingerprint(securityPolicy) } } : {}) });
   if (replaySource && !resuming) store.updateManifest({ replaySource: {
     runId: replaySource.runId, sourceFilesSha256: replaySource.sourceFilesSha256,
     kind: 'parsed-response-only' } });
@@ -473,11 +557,13 @@ async function cmdRun(opts) {
   const plannedQuestions = prepared ? prepared.records.question.map((row) => row.payload) :
     proposal.questions.filter((q) => taskIds.has(q.taskId));
   if (staticSuite && !resuming) {
+    const securityKinds = SECURITY_VERDICT_VERSIONS.includes(store.run.payload.architectureVersion)
+      ? ['contract-deviation', 'security-decision'] : null;
     for (const task of plannedTasks.filter((t) => t.origin === 'entry-scan')) {
       const anchor = anchorsInfo.anchors.get(task.anchorRefs[0]);
-      if (anchor?.kind !== 'idl') continue;
-      for (const kind of ['static-contract', ...(staticSuite.byMethod.has(anchor.method)
-        ? ['static-permission-match'] : [])]) {
+      if (anchor?.kind !== (ipcCodeVerdict ? 'ipc-code' : 'idl')) continue;
+      for (const kind of [...(securityKinds || ['static-contract']),
+        ...(staticSuite.byMethod.has(anchor.method) ? ['static-permission-match'] : [])]) {
         const proposition = state.TASK_QUESTION_TEXT[kind];
         plannedQuestions.push({
           questionId: ids.questionId('question', { anchorRef: anchor.entityId, kind, text: proposition }),
@@ -725,7 +811,11 @@ async function cmdRun(opts) {
       const checkQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'check-presence');
       const effectQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'authorization-effect');
       const permissionQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'permission-argument-match');
-      const contractQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'static-contract');
+      const securityVerdictRun = SECURITY_VERDICT_VERSIONS.includes(store.run.payload.architectureVersion);
+      const contractQ = plannedQuestions.find((q) => q.taskId === task.taskId &&
+        (securityVerdictRun ? q.kind === 'contract-deviation' : q.kind === 'static-contract'));
+      const securityQ = securityVerdictRun
+        ? plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'security-decision') : null;
       const suitePermissionQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'static-permission-match');
 
       await pushResult('inspectEntry', { entryRef }, bindingQ ? bindingQ.questionId : null);
@@ -735,24 +825,26 @@ async function cmdRun(opts) {
       }
       const direct = await pushResult('inspectAuthorization', { entryRef }, checkQ ? checkQ.questionId : null);
       if ((experiment === 'authorization-v1' ||
-          ['1.0.15-static-scan', '1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion)) &&
+          ['1.0.15-static-scan', '1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration',
+            ...AUTONOMOUS_TRACE_VERSIONS].includes(store.run.payload.architectureVersion)) &&
           task.origin === 'entry-scan' && binding.binding === 'resolved' &&
           direct.payload.status === 'ok' && direct.payload.answer.status === 'refuted') {
-        if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') store.appendEvent({ kind: 'gap-opened', taskId: task.taskId,
+        if (AUTONOMOUS_TRACE_VERSIONS.includes(store.run.payload.architectureVersion)) store.appendEvent({ kind: 'gap-opened', taskId: task.taskId,
           detail: { reasonCode: 'direct-check-absent', tool: 'inspectDelegation', questionId: checkQ?.questionId } });
         const delegated = await pushResult('inspectDelegation', { entryRef }, checkQ ? checkQ.questionId : null);
-        if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') store.appendEvent({ kind: 'gap-closed', taskId: task.taskId,
+        if (AUTONOMOUS_TRACE_VERSIONS.includes(store.run.payload.architectureVersion)) store.appendEvent({ kind: 'gap-closed', taskId: task.taskId,
           detail: { reasonCode: 'direct-check-absent', resultId: delegated.recordId,
             status: delegated.payload.answer?.status || delegated.payload.status } });
       }
       const relQ = plannedQuestions.find((q) => q.taskId === task.taskId && q.kind === 'dominance');
-      if (['1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion) &&
+      if (['1.0.16-static-scan', '1.0.17-static-scan', '1.0.18-static-arbitration',
+          ...AUTONOMOUS_TRACE_VERSIONS].includes(store.run.payload.architectureVersion) &&
           task.origin === 'entry-scan' && anchor?.kind === 'idl' && binding.binding === 'resolved') {
         await pushResult('inspectOperationCandidate', { entryRef }, relQ?.questionId);
       }
       let suiteComparison = null;
       let suiteProof = null;
-      if (staticSuite && contractQ) {
+      if (staticSuite && (contractQ || securityQ)) {
         if (suitePermissionQ && binding.binding === 'resolved') {
           store.appendEvent({ kind: 'gap-opened', taskId: task.taskId,
             detail: { reasonCode: 'permission-argument-unresolved', tool: 'inspectPermissionArgument',
@@ -763,7 +855,20 @@ async function cmdRun(opts) {
             detail: { reasonCode: 'permission-argument-unresolved', resultId: compared.recordId,
               status: suiteComparison?.status || compared.payload.status } });
         }
-        if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') {
+        if (securityVerdictRun) {
+          taskCtx.comparison = suiteComparison;
+          taskCtx.proofCache = proofCache;
+          taskCtx.securityPolicy = securityPolicy;
+          taskCtx.securityVerdict = true;
+          taskCtx.ipcCodeVerdict = ipcCodeVerdict ? scope.ipcCodeVerdict : null;
+          taskCtx.requireSaMethod = store.run.payload.architectureVersion === SA_METHOD_VERSION;
+          taskCtx.onProofCacheHit = (key) => store.appendEvent({ kind: 'summary-reused',
+            taskId: task.taskId, detail: { sourceTaskId: proofCacheOwner.get(key),
+              fingerprint: ids.sha256Hex(key) } });
+          const answered = await pushResult('inspectStaticContract', { entryRef },
+            securityQ ? securityQ.questionId : contractQ.questionId);
+          suiteProof = answered.payload.observations;
+        } else if (store.run.payload.architectureVersion === '1.0.19-autonomous-static') {
           taskCtx.comparison = suiteComparison;
           taskCtx.proofCache = proofCache;
           taskCtx.onProofCacheHit = (key) => store.appendEvent({ kind: 'summary-reused',
@@ -841,11 +946,17 @@ async function cmdRun(opts) {
       const taskQuestions = plannedQuestions.filter((q) => q.taskId === task.taskId);
       let liveCheck = null;
       let liveReview = null;
-      if (['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion) &&
-          ['live', 'mock', 'replay'].includes(mode) && contractQ && !verticalExperiment) {
-        const allowed = new Set([...results.map((r) => r.recordId), ...contextRecords.map((c) => c.recordId)]);
-        liveReview = await assessment.adjudicateLiveCheck({ gateway, task, purpose: 'static-contract-review',
-          question: contractQ, context, allowedRefs: allowed,
+      if (['1.0.18-static-arbitration', '1.0.19-autonomous-static', ...SECURITY_VERDICT_VERSIONS].includes(store.run.payload.architectureVersion) &&
+          ['live', 'mock', 'replay'].includes(mode) && (contractQ || securityQ) && !verticalExperiment) {
+        // 证据门允许引用的范围 = 本任务工具结果 + 本任务 context（与 check 复算口径一致）。
+        // 空引用兼容按版本：≤1.0.19 沿用其当时接受规则（可空），1.0.20 起要求非空。
+        const allowed = new Set([...results.map((r) => r.recordId),
+          ...contextRecords.filter((c) => c.payload && c.payload.taskId === task.taskId)
+            .map((c) => c.recordId)]);
+        liveReview = await assessment.adjudicateLiveCheck({ gateway, task,
+          purpose: securityVerdictRun ? 'security-gate-review' : 'static-contract-review',
+          question: securityVerdictRun ? securityQ : contractQ, context, allowedRefs: allowed,
+          allowEmptyEvidenceRefs: !securityVerdictRun,
           contextText: retrieval.renderForModel(context) + '\n' + JSON.stringify({
             norm: taskCtx.knowledge?.norm || null, staticProof: suiteProof,
             permissionComparison: suiteComparison
@@ -861,7 +972,100 @@ async function cmdRun(opts) {
         experiment: experiment || (['1.0.15-static-scan', '1.0.16-static-scan']
           .includes(store.run.payload.architectureVersion) ? 'static-scan' : null)
       });
-      if (contractQ) {
+      if (ipcCodeVerdict && checkQ) {
+        const provedGate = suiteProof?.gates?.some((gate) => gate.kind === ipcGateFamily(scope.ipcCodeVerdict.shape));
+        const refs = results.filter((row) => row.payload.tool === 'inspectStaticContract').map((row) => row.recordId);
+        const missing = provedGate ? null : state.buildMissing({ questionId: checkQ.questionId,
+          reasonCode: 'gate-evaluation-unknown', targetRefs: [entryRef],
+          nextActions: ['inspect-actual-gates'] });
+        off.extraMissing = off.extraMissing.filter((m) => m.questionId !== checkQ.questionId);
+        if (missing) off.extraMissing.push(missing);
+        off.updates = off.updates.filter((u) => u.questionId !== checkQ.questionId);
+        off.assessments = off.assessments.filter((a) => a.questionId !== checkQ.questionId);
+        off.updates.push({ questionId: checkQ.questionId,
+          status: provedGate ? 'supported' : 'insufficient', basis: 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: refs,
+          missingRefs: missing ? [missing.missingId] : [] });
+        off.assessments.push(assessment.makeAssessment({ task, question: checkQ, entryRef,
+          snapshotId: facts.snapshotId, decision: provedGate ? 'supported' : 'insufficient',
+          basis: 'derived', assurance: 'bounded-analysis', evidenceRefs: refs,
+          missingRefs: missing ? [missing.missingId] : [], contextId: context.contextId,
+          rationale: provedGate ? IPC_PRESENCE_RATIONALE[ipcGateFamily(scope.ipcCodeVerdict.shape)] :
+            'The scoped identity gate could not be established.' }));
+      }
+      if (ipcCodeVerdict && relQ && suiteProof?.status === 'excluded' &&
+          suiteProof.gates?.some((gate) => gate.blocksOperation)) {
+        const refs = results.filter((row) => row.payload.tool === 'inspectStaticContract').map((row) => row.recordId);
+        off.extraMissing = off.extraMissing.filter((m) => m.questionId !== relQ.questionId);
+        off.updates = off.updates.filter((u) => u.questionId !== relQ.questionId);
+        off.assessments = off.assessments.filter((a) => a.questionId !== relQ.questionId);
+        off.updates.push({ questionId: relQ.questionId, status: 'supported', basis: 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: refs, missingRefs: [] });
+        off.assessments.push(assessment.makeAssessment({ task, question: relQ, entryRef,
+          snapshotId: facts.snapshotId, decision: 'supported', basis: 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: refs, missingRefs: [],
+          contextId: context.contextId,
+          rationale: IPC_DOMINANCE_RATIONALE[ipcGateFamily(scope.ipcCodeVerdict.shape)] }));
+      }
+      if (contractQ && securityVerdictRun) {
+        // ---- 1.0.20 双命题：契约差异与安全裁决各自成问，模型只可降级。
+        const toolRefs = results.filter((row) => ['getApplicableNorms', 'inspectOperationCandidate',
+          'inspectPermissionArgument', 'inspectStaticContract'].includes(row.payload.tool)).map((row) => row.recordId);
+        const contractDecision = ipcCodeVerdict ? 'not-applicable' : !suiteProof?.contract ? 'insufficient'
+          : suiteProof.contract.status === 'deviation' ? 'refuted'
+            : suiteProof.contract.status === 'none' ? 'supported' : 'insufficient';
+        const contractReason = !suiteProof?.contract ? (suiteProof?.reason || 'entry-or-builder-norm-unresolved')
+          : suiteProof.contract.reason || null;
+        const rawContractReason = contractReason || 'contract-comparison-unresolved';
+        const contractReasonCode = ['permission-check-ambiguous', 'permission-constant-unresolved',
+          'stale-input', 'permission-argument-unresolved', 'entry-or-builder-norm-unresolved',
+          'norm-applicability-unknown', 'call-chain-or-operation-ambiguous'].includes(rawContractReason)
+          ? rawContractReason : 'contract-comparison-unresolved';
+        const contractMissing = ['insufficient', 'conflict'].includes(contractDecision)
+          ? state.buildMissing({ questionId: contractQ.questionId,
+            reasonCode: contractReasonCode,
+            targetRefs: [entryRef], nextActions: ['inspect-source-and-contract'] }) : null;
+        if (contractMissing) off.extraMissing.push(contractMissing);
+        off.updates.push({ questionId: contractQ.questionId, status: contractDecision, basis: 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: toolRefs,
+          missingRefs: contractMissing ? [contractMissing.missingId] : [] });
+        off.assessments.push(assessment.makeAssessment({
+          task, question: contractQ, entryRef, snapshotId: facts.snapshotId,
+          decision: contractDecision, basis: 'derived', assurance: 'bounded-analysis', evidenceRefs: toolRefs,
+          counterEvidenceRefs: contractDecision === 'refuted' ? toolRefs : [],
+          missingRefs: contractMissing ? [contractMissing.missingId] : [], contextId: context.contextId,
+          rationale: ipcCodeVerdict ? 'No published document contract applies to this scoped IPC code.' : suiteProof?.contract
+            ? `contract ${suiteProof.contract.family || suiteProof.contract.status}` +
+              (suiteProof.contract.observedPermission
+                ? ` (documented ${suiteProof.contract.expectedPermission}, observed ${suiteProof.contract.observedPermission})`
+                : '')
+            : (suiteProof?.reason || 'no applicable published norm')
+        }));
+        const arbitration = staticProofLib.arbitrateSecurity(suiteProof, liveReview);
+        const securityDecision = arbitration.status === 'finding' ? 'supported'
+          : arbitration.status === 'excluded' ? 'refuted' : 'insufficient';
+        const securityReason = arbitration.reasonCode ||
+          (suiteProof?.security ? suiteProof.security.reason : suiteProof?.reason) || 'security-path-unproven';
+        const securityMissing = securityDecision === 'insufficient'
+          ? state.buildMissing({ questionId: securityQ.questionId, reasonCode: securityReason,
+            targetRefs: [entryRef, ...(suiteProof?.operationRef ? [suiteProof.operationRef] : [])],
+            nextActions: ['inspect-actual-gates', 'inspect-source-and-contract'] }) : null;
+        if (securityMissing) off.extraMissing.push(securityMissing);
+        off.updates.push({ questionId: securityQ.questionId, status: securityDecision,
+          basis: arbitration.modelCallRef ? 'mixed' : 'derived', assurance: 'bounded-analysis',
+          evidenceRefs: toolRefs, missingRefs: securityMissing ? [securityMissing.missingId] : [] });
+        off.assessments.push(assessment.makeAssessment({
+          task, question: securityQ, entryRef, snapshotId: facts.snapshotId,
+          decision: securityDecision, basis: arbitration.modelCallRef ? 'mixed' : 'derived',
+          assurance: 'bounded-analysis', evidenceRefs: toolRefs,
+          counterEvidenceRefs: securityDecision === 'refuted' ? toolRefs : [],
+          missingRefs: securityMissing ? [securityMissing.missingId] : [], contextId: context.contextId,
+          modelCallRef: arbitration.modelCallRef || null,
+          rationale: arbitration.rationale || suiteProof?.security?.proposition ||
+            (suiteProof?.security ? suiteProof.security.reason : suiteProof?.reason) ||
+            'Security proposition not established.'
+        }));
+      } else if (contractQ) {
         const arbitration = ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion)
           ? assessment.arbitrateStaticContract(suiteProof, liveReview) : null;
         const decision = arbitration?.decision || (suiteProof?.status === 'finding' ? 'refuted' :
@@ -961,7 +1165,7 @@ async function cmdRun(opts) {
         }));
       }
 
-      if (!['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(store.run.payload.architectureVersion) &&
+      if (!['1.0.18-static-arbitration', '1.0.19-autonomous-static', ...SECURITY_VERDICT_VERSIONS].includes(store.run.payload.architectureVersion) &&
           ['live', 'mock', 'replay'].includes(mode) && checkQ && !verticalExperiment) {
         const allowed = new Set([...results.map((r) => r.recordId), ...contextRecords.map((c) => c.recordId)]);
         liveCheck = await assessment.adjudicateLiveCheck({
@@ -970,6 +1174,7 @@ async function cmdRun(opts) {
           question: taskQuestions.find((q) => q.kind === 'check-presence'),
           context,
           allowedRefs: allowed,
+          allowEmptyEvidenceRefs: true,
           contextText: retrieval.renderForModel(context),
           maxTokens: 1200
         });
@@ -1174,7 +1379,7 @@ async function cmdRun(opts) {
     }
   });
   store.updateManifest({
-    artifactRefs: Object.keys(store.computeChecksums()),
+    artifactRefs: reportRes.artifactRefs,
     counts: reportRes.summary.counts,
     semanticHash: reportRes.summary.semanticHash,
     plannedTasks: plannedTasks.length,
@@ -1242,6 +1447,48 @@ function loadSchemas() {
     cache[recordType] = schemaLib.loadSchema(SCHEMA_DIR, name);
   }
   return cache;
+}
+
+/** 从 model-calls 归档读取并验证一次复核意见（旧 static-contract-review / 新 security-gate-review）。 */
+function readModelReviewCall(dir, taskId, purpose) {
+  const callDir = path.join(dir, 'model-calls');
+  const calls = fs.existsSync(callDir) ? fs.readdirSync(callDir) : [];
+  return calls.map((file) => JSON.parse(fs.readFileSync(path.join(callDir, file), 'utf8')))
+    .find((call) => call.taskId === taskId && call.purpose === purpose) || null;
+}
+
+/** 从 model-calls 归档读取并验证一次复核意见。requireNonEmptyRefs 仅对 1.0.20 生效：
+ * 旧版本（≤1.0.19）的存档意见按其当时的接受规则复算（空引用可接受），不改写历史。 */
+function acceptedModelReview(review, allowedRefs, requireNonEmptyRefs = false) {
+  if (review?.status === 'ok' && ['refuted', 'conflict'].includes(review.parsed?.decision) &&
+      Array.isArray(review.parsed.evidenceRefs) &&
+      (!requireNonEmptyRefs || review.parsed.evidenceRefs.length > 0) &&
+      review.parsed.evidenceRefs.every((ref) => allowedRefs.has(ref)) &&
+      !assessment.FORBIDDEN_TOKENS.some((token) => JSON.stringify(review.parsed).includes(token))) {
+    return { decision: review.parsed.decision, gate: 'accepted',
+      rationale: String(review.parsed.rationale || '').slice(0, 400), modelCallRef: review.callId };
+  }
+  return { review, decision: null, gate: null, modelCallRef: review?.callId || null };
+}
+
+function loadLegacyModelReview(dir, taskId, evRes, contexts) {
+  const review = readModelReviewCall(dir, taskId, 'static-contract-review');
+  const allowed = new Set([...evRes.rows.filter((event) => event.kind === 'tool-completed' &&
+    event.taskId === taskId).map((event) => event.detail.resultId),
+  ...contexts.filter((row) => row.payload.taskId === taskId).map((row) => row.recordId)]);
+  const verdict = acceptedModelReview(review, allowed);
+  return verdict.gate === 'accepted' ? verdict : null;
+}
+
+function loadSecurityModelReview(dir, taskId, securityVerdictRun, evRes, contexts) {
+  if (!securityVerdictRun) return { review: null };
+  const review = readModelReviewCall(dir, taskId, 'security-gate-review');
+  const allowed = new Set([...evRes.rows.filter((event) => event.kind === 'tool-completed' &&
+    event.taskId === taskId).map((event) => event.detail.resultId),
+  ...contexts.filter((row) => row.payload.taskId === taskId).map((row) => row.recordId)]);
+  // 1.0.20：接受的复核意见必须引用非空、任务内、可回查证据。
+  const verdict = acceptedModelReview(review, allowed, true);
+  return verdict.gate === 'accepted' ? { review: verdict } : { review: null };
 }
 
 function cmdCheck(opts) {
@@ -1346,6 +1593,11 @@ function cmdCheck(opts) {
 
   for (const q of questions) {
     if (!taskIds.has(q.payload.taskId)) add('dangling-ref', `question ${q.recordId} -> task ${q.payload.taskId}`);
+    if (q.payload.status === 'not-applicable' &&
+        !(IPC_VERDICT_VERSIONS.includes(runRecord.payload.architectureVersion) &&
+          q.payload.kind === 'contract-deviation')) {
+      add('bad-enum', `question ${q.recordId} status=not-applicable`);
+    }
     for (const m of q.payload.missingRefs) if (!missingIds.has(m)) add('dangling-ref', `question ${q.recordId} -> missing ${m}`);
   }
   for (const t of tasks) {
@@ -1361,7 +1613,12 @@ function cmdCheck(opts) {
     for (const e of a.payload.evidenceRefs) if (!toolIds.has(e)) add('dangling-ref', `assessment ${a.recordId} -> evidence ${e}`);
     for (const m of a.payload.missingRefs) if (!missingIds.has(m)) add('dangling-ref', `assessment ${a.recordId} -> missing ${m}`);
     if (a.payload.scope.snapshotId !== snapshotId) add('snapshot-mismatch', `assessment ${a.recordId}`);
-    if (!assessment.DECISIONS.includes(a.payload.decision)) add('bad-enum', `assessment ${a.recordId} decision=${a.payload.decision}`);
+    if (!assessment.DECISIONS.includes(a.payload.decision) &&
+        !(IPC_VERDICT_VERSIONS.includes(runRecord.payload.architectureVersion) &&
+          a.payload.decision === 'not-applicable' &&
+          questions.find((q) => q.recordId === a.payload.questionId)?.payload.kind === 'contract-deviation')) {
+      add('bad-enum', `assessment ${a.recordId} decision=${a.payload.decision}`);
+    }
     const blob = JSON.stringify(a.payload);
     const forbidden = assessment.FORBIDDEN_TOKENS.find((token) => blob.includes(token));
     if (forbidden) add('forbidden-token', 'assessment contains unsupported certainty claim');
@@ -1371,7 +1628,8 @@ function cmdCheck(opts) {
     if (r.payload.snapshotId !== snapshotId) add('snapshot-mismatch', `report ${r.recordId}`);
     if (!['candidate', 'observation', 'excluded', 'finding'].includes(r.payload.reportability)) add('bad-enum', `report ${r.recordId}`);
     if (r.payload.reportability === 'finding' &&
-        (!['1.0.14-static-experiment', '1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) ||
+        (!['1.0.14-static-experiment', '1.0.17-static-scan', '1.0.18-static-arbitration',
+          '1.0.19-autonomous-static', ...SECURITY_VERDICT_VERSIONS].includes(runRecord.payload.architectureVersion) ||
           r.payload.verificationStatus !== 'static-only')) add('finding-not-allowed', `report ${r.recordId}`);
     for (const e of r.payload.evidenceRefs) if (!toolIds.has(e)) add('dangling-ref', `report ${r.recordId} -> evidence ${e}`);
   }
@@ -1407,67 +1665,135 @@ function cmdCheck(opts) {
 
   // report-model 一致性（语义哈希可复算）
   let staticProofs = null;
-  if (['1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)) {
+  if (['1.0.17-static-scan', '1.0.18-static-arbitration', '1.0.19-autonomous-static',
+      ...SECURITY_VERDICT_VERSIONS].includes(runRecord.payload.architectureVersion)) {
+    const securityVerdictRun = SECURITY_VERDICT_VERSIONS.includes(runRecord.payload.architectureVersion);
     try {
       const pin = JSON.parse(fs.readFileSync(path.join(dir, 'static-knowledge.json'), 'utf8'));
       staticProofs = JSON.parse(fs.readFileSync(path.join(dir, 'static-proofs.json'), 'utf8'));
-      const scope = loadScope(DEFAULT_SCOPE);
+      const manifestDoc = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+      // 复算 scope 以 run manifest 固定的 scope 文件为准；旧 run 无该字段时沿用 pilot 默认。
+      let scope;
+      if (manifestDoc.scopePolicy && manifestDoc.scopePolicy.file) {
+        const scopeAbs = path.isAbsolute(manifestDoc.scopePolicy.file)
+          ? manifestDoc.scopePolicy.file : path.resolve(TOOL_DIR, manifestDoc.scopePolicy.file);
+        if (!fs.existsSync(scopeAbs)) throw new Error('scope-policy-missing');
+        if (manifestDoc.scopePolicy.sha256 &&
+            storeLib.sha256File(scopeAbs) !== manifestDoc.scopePolicy.sha256) {
+          throw new Error('scope-policy-drift');
+        }
+        scope = loadScope(scopeAbs);
+      } else {
+        scope = loadScope(DEFAULT_SCOPE);
+      }
       const facts = openFacts(scope, snapshotId);
-      const suite = knowledgeLib.loadKnowledgeSuite(pin.versions.map((v) =>
-        path.join(knowledgeLib.PUBLISHED_DIR, v.slice(7), 'knowledge.json')), facts);
+      const ipcRun = IPC_VERDICT_VERSIONS.includes(runRecord.payload.architectureVersion);
+      const suite = ipcRun ? { byMethod: new Map(), knowledgeVersion: null } :
+        knowledgeLib.loadKnowledgeSuite(pin.versions.map((v) =>
+          path.join(knowledgeLib.PUBLISHED_DIR, v.slice(7), 'knowledge.json')), facts);
+      if (ipcRun && pin.versions.length !== 0) throw new Error('ipc-knowledge-not-empty');
       if (pin.knowledgeVersion !== suite.knowledgeVersion ||
           pin.knowledgeVersion !== runRecord.payload.knowledgeVersion) throw new Error('suite version drift');
       const anchors = discovery.buildAnchors(facts, scope);
+      // 1.0.20 复算使用 manifest 固定的锚点文件（--security-anchors 受控替换亦在此复算）。
+      const pinnedAnchorsPath = securityVerdictRun && manifestDoc.securityVerdict
+        ? (path.isAbsolute(manifestDoc.securityVerdict.anchorsFile)
+          ? manifestDoc.securityVerdict.anchorsFile
+          : path.resolve(TOOL_DIR, manifestDoc.securityVerdict.anchorsFile))
+        : policyLib.ANCHORS_FILE;
+      const securityPolicy = securityVerdictRun && !ipcRun
+        ? policyLib.load(facts, pinnedAnchorsPath) : null;
+      const pinnedAnchors = securityVerdictRun ? manifestDoc.securityVerdict : null;
+      if (securityVerdictRun && !ipcRun && (!pinnedAnchors ||
+          pinnedAnchors.policyFingerprint !== policyLib.fingerprint(securityPolicy) ||
+          pinnedAnchors.anchorsSha256 !== securityPolicy.anchorsSha256)) {
+        throw new Error('policy anchor drift');
+      }
       for (const task of tasks.filter((row) => row.payload.origin === 'entry-scan')) {
         const entry = anchors.anchors.get(task.payload.anchorRefs[0]);
-        if (entry?.kind !== 'idl') continue;
+        if (entry?.kind !== (ipcRun ? 'ipc-code' : 'idl')) continue;
         const binding = discovery.resolveBinding(entry.entityId, { facts, scope, anchors: anchors.anchors });
         const knowledge = suite.byMethod.get(entry.method);
         const comparison = knowledge && permissionArgumentLib.compare(facts, entry, binding, knowledge);
-        const proof = staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
-          { includeNewFamilies: true,
-            includeCandidateContext: ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) });
+        const proof = ipcRun ? ipcVerdictLib.analyze(facts, entry, binding, scope.ipcCodeVerdict)
+          : securityVerdictRun
+          ? staticProofLib.analyzeSecurity(facts, entry, binding, knowledge, comparison,
+            { policy: securityPolicy, requireSaMethod: runRecord.payload.architectureVersion === SA_METHOD_VERSION })
+          : staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
+            { includeNewFamilies: true,
+              includeCandidateContext: ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) });
         if (ids.canonicalJson(proof) !== ids.canonicalJson(staticProofs[task.recordId])) {
           add('static-proof-drift', task.recordId);
         }
-        if (runRecord.payload.architectureVersion === '1.0.19-autonomous-static') {
+        if (['1.0.19-autonomous-static', ...SECURITY_VERDICT_VERSIONS].includes(runRecord.payload.architectureVersion)) {
           const answer = toolResults.find((row) => row.payload.tool === 'inspectStaticContract' &&
             row.payload.questionId === questions.find((q) => q.payload.taskId === task.recordId &&
-              q.payload.kind === 'static-contract')?.recordId);
+              [securityVerdictRun ? 'security-decision' : 'static-contract'].includes(q.payload.kind))?.recordId);
           if (answer && ids.canonicalJson(answer.payload.observations) !== ids.canonicalJson(proof)) {
             add('static-tool-answer-drift', task.recordId);
           }
         }
-        const contract = questions.find((q) => q.payload.taskId === task.recordId && q.payload.kind === 'static-contract');
-        const contractAssessment = assessments.find((a) => a.payload.questionId === contract?.recordId)?.payload;
-        let modelReview = null;
-        if (['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)) {
-          const callDir = path.join(dir, 'model-calls');
-          const calls = fs.existsSync(callDir) ? fs.readdirSync(callDir) : [];
-          const review = calls.map((file) => JSON.parse(fs.readFileSync(path.join(dir, 'model-calls', file), 'utf8')))
-            .find((call) => call.taskId === task.recordId && call.purpose === 'static-contract-review');
-          const allowed = new Set([...evRes.rows.filter((event) => event.kind === 'tool-completed' &&
-            event.taskId === task.recordId).map((event) => event.detail.resultId),
-          ...contexts.filter((row) => row.payload.taskId === task.recordId).map((row) => row.recordId)]);
-          if (review?.status === 'ok' && ['refuted', 'conflict'].includes(review.parsed?.decision) &&
-              Array.isArray(review.parsed.evidenceRefs) && review.parsed.evidenceRefs.every((ref) => allowed.has(ref)) &&
-              !assessment.FORBIDDEN_TOKENS.some((token) => JSON.stringify(review.parsed).includes(token))) {
-            modelReview = { decision: review.parsed.decision, gate: 'accepted',
-              rationale: String(review.parsed.rationale || '').slice(0, 400), modelCallRef: review.callId };
+        if (securityVerdictRun) {
+          // 1.0.20：核对 contract-deviation 与 security-decision 两个问题、评估与任务操作目标。
+          const contractQ = questions.find((q) => q.payload.taskId === task.recordId &&
+            q.payload.kind === 'contract-deviation');
+          const securityQ = questions.find((q) => q.payload.taskId === task.recordId &&
+            q.payload.kind === 'security-decision');
+          const contractA = assessments.find((a) => a.payload.questionId === contractQ?.recordId)?.payload;
+          const securityA = assessments.find((a) => a.payload.questionId === securityQ?.recordId)?.payload;
+          const dominanceQ = ipcRun ? questions.find((q) => q.payload.taskId === task.recordId &&
+            q.payload.kind === 'dominance') : null;
+          const dominanceA = ipcRun ? assessments.find((a) => a.payload.questionId === dominanceQ?.recordId)?.payload : null;
+          const presenceQ = ipcRun ? questions.find((q) => q.payload.taskId === task.recordId &&
+            q.payload.kind === 'check-presence') : null;
+          const presenceA = ipcRun ? assessments.find((a) => a.payload.questionId === presenceQ?.recordId)?.payload : null;
+          const expectedContract = ipcRun ? 'not-applicable' : !proof.contract ? 'insufficient'
+            : proof.contract.status === 'deviation' ? 'refuted'
+              : proof.contract.status === 'none' ? 'supported' : 'insufficient';
+          const modelReview = ipcRun ? { review: null } : loadSecurityModelReview(dir, task.recordId, securityVerdictRun,
+            evRes, contexts, toolResults, assessments);
+          const arbitration = staticProofLib.arbitrateSecurity(proof, modelReview.review);
+          const expectedSecurity = arbitration.status === 'finding' ? 'supported'
+            : arbitration.status === 'excluded' ? 'refuted' : 'insufficient';
+          const securityMissing = securityA?.missingRefs.map((id) =>
+            missings.find((row) => row.recordId === id)?.payload.reasonCode) || [];
+          const expectedDominance = proof.status === 'excluded' && proof.gates?.some((gate) => gate.blocksOperation)
+            ? 'supported' : 'insufficient';
+          const expectedPresence = proof.gates?.some((gate) => gate.kind === ipcGateFamily(
+            runRecord.payload.architectureVersion === RUST_IPC_CODE_VERSION ? 'rust-enum' : null))
+            ? 'supported' : 'insufficient';
+          if (!contractQ || !securityQ || contractQ.payload.status !== expectedContract ||
+              contractA?.decision !== expectedContract || !securityA ||
+              securityA.decision !== expectedSecurity ||
+              (ipcRun && (!presenceQ || presenceQ.payload.status !== expectedPresence ||
+                presenceA?.decision !== expectedPresence)) ||
+              (ipcRun && (!dominanceQ || dominanceQ.payload.status !== expectedDominance ||
+                dominanceA?.decision !== expectedDominance ||
+                (expectedDominance === 'supported' && dominanceA.missingRefs.length !== 0))) ||
+              (proof.operationRef && task.payload.operationRef !== proof.operationRef) ||
+              (arbitration.reasonCode && !securityMissing?.includes(arbitration.reasonCode))) {
+            add('static-assessment-drift', task.recordId);
           }
-        }
-        const arbitration = ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)
-          ? assessment.arbitrateStaticContract(proof, modelReview) : null;
-        const verdict = arbitration?.decision || (proof.status === 'finding' ? 'refuted' :
-          proof.status === 'excluded' ? 'supported' : 'insufficient');
-        const contractMissing = contractAssessment?.missingRefs.map((id) =>
-          missings.find((row) => row.recordId === id)?.payload.reasonCode);
-        if (!contract || contract.payload.status !== verdict ||
-            contractAssessment?.decision !== verdict ||
-            (proof.operationRef && task.payload.operationRef !== proof.operationRef) ||
-            (arbitration?.reasonCode && (!contractMissing?.includes(arbitration.reasonCode) ||
-              contractAssessment.modelCallRef !== arbitration.modelCallRef))) {
-          add('static-assessment-drift', task.recordId);
+        } else {
+          const contract = questions.find((q) => q.payload.taskId === task.recordId && q.payload.kind === 'static-contract');
+          const contractAssessment = assessments.find((a) => a.payload.questionId === contract?.recordId)?.payload;
+          let modelReview = null;
+          if (['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)) {
+            modelReview = loadLegacyModelReview(dir, task.recordId, evRes, contexts);
+          }
+          const arbitration = ['1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion)
+            ? assessment.arbitrateStaticContract(proof, modelReview) : null;
+          const verdict = arbitration?.decision || (proof.status === 'finding' ? 'refuted' :
+            proof.status === 'excluded' ? 'supported' : 'insufficient');
+          const contractMissing = contractAssessment?.missingRefs.map((id) =>
+            missings.find((row) => row.recordId === id)?.payload.reasonCode);
+          if (!contract || contract.payload.status !== verdict ||
+              contractAssessment?.decision !== verdict ||
+              (proof.operationRef && task.payload.operationRef !== proof.operationRef) ||
+              (arbitration?.reasonCode && (!contractMissing?.includes(arbitration.reasonCode) ||
+                contractAssessment.modelCallRef !== arbitration.modelCallRef))) {
+            add('static-assessment-drift', task.recordId);
+          }
         }
         const tool = toolResults.find((row) => row.payload.questionId ===
           questions.find((q) => q.payload.taskId === task.recordId &&
@@ -1480,7 +1806,8 @@ function cmdCheck(opts) {
       }
     } catch (e) { add('static-suite-drift', e.message); }
   }
-  if (runRecord.payload.architectureVersion === '1.0.19-autonomous-static') {
+  if (AUTONOMOUS_TRACE_VERSIONS.includes(runRecord.payload.architectureVersion)) {
+    const securityVerdictTrace = SECURITY_VERDICT_VERSIONS.includes(runRecord.payload.architectureVersion);
     const events = evRes.rows;
     const gaps = events.filter((ev) => ev.kind === 'gap-opened');
     const closed = events.filter((ev) => ev.kind === 'gap-closed');
@@ -1501,12 +1828,30 @@ function cmdCheck(opts) {
       }
     }
     try {
-      const scope = loadScope(DEFAULT_SCOPE);
+      const traceManifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+      // 复算 scope 以 run manifest 固定的 scope 文件为准；旧 run 无该字段时沿用 pilot 默认。
+      let scope;
+      if (traceManifest.scopePolicy && traceManifest.scopePolicy.file) {
+        const scopeAbs = path.isAbsolute(traceManifest.scopePolicy.file)
+          ? traceManifest.scopePolicy.file : path.resolve(TOOL_DIR, traceManifest.scopePolicy.file);
+        if (!fs.existsSync(scopeAbs)) throw new Error('scope-policy-missing');
+        if (traceManifest.scopePolicy.sha256 &&
+            storeLib.sha256File(scopeAbs) !== traceManifest.scopePolicy.sha256) {
+          throw new Error('scope-policy-drift');
+        }
+        scope = loadScope(scopeAbs);
+      } else {
+        scope = loadScope(DEFAULT_SCOPE);
+      }
       const facts = openFacts(scope, snapshotId);
       const pin = JSON.parse(fs.readFileSync(path.join(dir, 'static-knowledge.json'), 'utf8'));
       const suite = knowledgeLib.loadKnowledgeSuite(pin.versions.map((v) =>
         path.join(knowledgeLib.PUBLISHED_DIR, v.slice(7), 'knowledge.json')), facts);
       const anchors = discovery.buildAnchors(facts, scope);
+      const tracePolicy = securityVerdictTrace
+        ? policyLib.load(facts, traceManifest.securityVerdict && !/^([a-zA-Z]:)?[\\/]/.test(traceManifest.securityVerdict.anchorsFile)
+          ? path.resolve(TOOL_DIR, traceManifest.securityVerdict.anchorsFile)
+          : traceManifest.securityVerdict.anchorsFile) : null;
       const cache = new Map();
       const owner = new Map();
       const expected = [];
@@ -1521,10 +1866,14 @@ function cmdCheck(opts) {
         const knowledge = suite.byMethod.get(entry.method);
         const comparison = knowledge && binding.binding === 'resolved'
           ? permissionArgumentLib.compare(facts, entry, binding, knowledge) : null;
-        const proof = staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
-          { includeNewFamilies: true, includeCandidateContext: true, cache,
-            onCacheHit: (key) => expected.push({ taskId: ev.taskId,
-              sourceTaskId: owner.get(key), fingerprint: ids.sha256Hex(key) }) });
+        const onCacheHit = (key) => expected.push({ taskId: ev.taskId,
+          sourceTaskId: owner.get(key), fingerprint: ids.sha256Hex(key) });
+        const proof = securityVerdictTrace
+          ? staticProofLib.analyzeSecurity(facts, entry, binding, knowledge, comparison,
+            { policy: tracePolicy, cache, onCacheHit,
+              requireSaMethod: runRecord.payload.architectureVersion === SA_METHOD_VERSION })
+          : staticProofLib.analyze(facts, entry, binding, knowledge, comparison,
+            { includeNewFamilies: true, includeCandidateContext: true, cache, onCacheHit });
         for (const [key, value] of cache) {
           if (value === proof && !owner.has(key)) owner.set(key, ev.taskId);
         }
@@ -1570,7 +1919,8 @@ function cmdCheck(opts) {
     '1.0.9-vertical-experiment', '1.0.10-vertical-experiment',
     '1.0.11-vertical-experiment', '1.0.12-vertical-experiment',
     '1.0.13-vertical-experiment', '1.0.14-static-experiment', '1.0.17-static-scan',
-    '1.0.18-static-arbitration', '1.0.19-autonomous-static'].includes(runRecord.payload.architectureVersion) &&
+    '1.0.18-static-arbitration', '1.0.19-autonomous-static',
+    ...SECURITY_VERDICT_VERSIONS].includes(runRecord.payload.architectureVersion) &&
       ids.canonicalJson(reportRows.map((row) => row.payload).sort((a, b) => a.reportId.localeCompare(b.reportId))) !==
       ids.canonicalJson(rebuilt.rows)) {
     add('report-model-drift', 'report rows differ from assessments');

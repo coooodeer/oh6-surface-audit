@@ -292,7 +292,28 @@ test('live 程序证据门：supported 降级、越界引用拒绝、禁用词�
   assert.strictEqual(badRef.extraMissing.length, 1);
   assert.strictEqual(badRef.extraMissing[0].reasonCode, 'model-output-invalid');
 
-  const forbidden = await liveGate({ decision: 'refuted', rationale: 'runtime-verified', evidenceRefs: [] });
+  // 空引用不能通过证据门：被接受的复核意见必须引用可回查证据。
+  const noRefs = await liveGate({ decision: 'refuted', rationale: 'x', evidenceRefs: [] });
+  assert.strictEqual(noRefs.decision, 'insufficient');
+  assert.match(noRefs.gate, /no-evidence-refs/);
+
+  // 旧版本（≤1.0.19）运行与 replay 沿用当时接受规则：allowEmptyEvidenceRefs 下空引用可接受。
+  const legacyRefs = await assessment.adjudicateLiveCheck({
+    gateway: { invoke: async () => ({ status: 'ok', parsed: { decision: 'refuted', rationale: 'x', evidenceRefs: [] },
+      callId: 'CALL:0123456789abcdef', content: '{}' }) },
+    task: { taskId: ids.taskId('task', { anchorRefs: ['ENT:aaaaaaaaaaaaaaaa'], origin: 'entry-scan' }),
+      anchorRefs: ['ENT:aaaaaaaaaaaaaaaa'] },
+    question: fakeQuestion('check-presence',
+      ids.taskId('task', { anchorRefs: ['ENT:aaaaaaaaaaaaaaaa'], origin: 'entry-scan' })),
+    context: { contextId: 'CTX:0123456789abcdef' },
+    allowedRefs: new Set(['EVID:0123456789abcdef']),
+    allowEmptyEvidenceRefs: true,
+    contextText: 'facts'
+  });
+  assert.strictEqual(legacyRefs.gate, 'accepted');
+  assert.strictEqual(legacyRefs.decision, 'refuted');
+
+  const forbidden = await liveGate({ decision: 'refuted', rationale: 'runtime-verified', evidenceRefs: ['EVID:0123456789abcdef'] });
   assert.strictEqual(forbidden.decision, 'insufficient');
   assert.match(forbidden.gate, /forbidden-token/);
 

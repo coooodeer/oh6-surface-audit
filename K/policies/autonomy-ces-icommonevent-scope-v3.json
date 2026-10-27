@@ -1,0 +1,66 @@
+{
+  "policyId": "autonomy-ces-icommonevent-scope-v3",
+  "version": "1.0.0",
+  "description": "ICommonEvent 17 entries on the current-tool fact snapshot for end-to-end cost measurement.",
+  "scopeId": "ces-icommonevent-pilot-v3",
+  "snapshotId": "sha256:ed62de813f07adf703537a6326c9e06b1f4dc571a8a57e959d46f415296afa3a",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/notification/common_event_service", "part": "notification" }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl; same 17 ICommonEvent methods as v2" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.EventFwk.ICommonEvent"],
+    "entryKinds": ["idl"]
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.EventFwk.ICommonEvent": { "implOwnerSuffix": "CommonEventManagerService" }
+    }
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "operationRecipe": {
+    "kind": "member-call",
+    "receiver": "innerCommonEventManager_",
+    "separator": "->",
+    "targetClass": "InnerCommonEventManager",
+    "entryOwnerSuffix": "CommonEventManagerService"
+  },
+  "gateVocabulary": {
+    "checkCallees": ["VerifyAccessToken"],
+    "gateTokens": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp"],
+    "identityTokens": ["tokenId", "isSubsystem", "VerifyNativeToken", "IsSystemApp", "VerifyAccessToken"],
+    "systemAppOrNativeShape": true,
+    "note": "Only VerifyAccessToken is checkRef; other CES identity shapes remain unresolved."
+  },
+  "contractVocabulary": {
+    "inlineLiteral": true,
+    "note": "CES permission literal is a function-local const string."
+  },
+  "checkVocabulary": {
+    "strong": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckPermission"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid", "GetCallingTokenID"],
+    "callees": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckPermission", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["tokenId", "callerToken", "permission", "callingUid", "callingTokenId", "isSubsystem"]
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc"
+  },
+  "limits": {
+    "maxIndexFunctions": 5000,
+    "maxIndexCalls": 30000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  }
+}

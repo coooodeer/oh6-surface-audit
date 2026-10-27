@@ -1,0 +1,19 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "builder-llm-2026-10-25",
+  "reviewedAt": "2026-10-25T02:20:00Z",
+  "decision": "accepted",
+  "normId": "NORM:31b17842f63e3b21",
+  "proposalVersion": "sha256:234bbbacd4f0f10d47f65b387120e2e1ea1b6c4e6d02c9df06b5cd392b8a31c2",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "appliesTo": [
+    "GetEnrolledId"
+  ],
+  "applicabilityRationale": {
+    "GetEnrolledId": "js-apis-osAccount-sys.md:5070-5080 section getEnrolledId declares USE_USER_IDM; account_iam_service.cpp:329 checks PERMISSION_USE_USER_IDM before InnerAccountIAMManager::GetEnrolledId."
+  },
+  "rationale": "Builder-LLM accepts only the getEnrolledId mapping for USE_USER_IDM. IDL GetCredentialInfo is deliberately left uncovered because the corresponding JS getAuthInfo section is a different API name and the mapping is not declared in the same section; the suite reports that method as an application gap instead of mapping it silently."
+}

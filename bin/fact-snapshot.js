@@ -19,7 +19,7 @@ const io = require('../lib/facts/io');
 const scope = require('../lib/facts/scope');
 const compdb = require('../lib/facts/compdb');
 
-const RULES_VERSION = 'K-1.0.0';
+const { rulesVersionFor } = require('../lib/facts/manifest');
 
 function parseArgs(argv) {
   const args = { scopeId: null, check: false, prune: false, snapshot: null };
@@ -38,7 +38,7 @@ function pkgVersion(abs) {
   try { return JSON.parse(fs.readFileSync(abs, 'utf8')).version || null; } catch (_) { return null; }
 }
 
-function toolVersions() {
+function toolVersions(policy) {
   const clangExe = path.join(scope.SRC_ROOT, 'prebuilts', 'clang', 'ohos', 'windows-x86_64', 'llvm', 'bin', 'clang++.exe');
   let clang = null;
   if (fs.existsSync(clangExe)) {
@@ -47,13 +47,21 @@ function toolVersions() {
     clang = m ? m[1] : null;
   }
   const nodeMods = path.join(scope.WORKSPACE, 'oh6-framework-want-leak-miner', 'node_modules');
-  return {
+  const versions = {
     node: process.version,
     clang,
     treeSitter: pkgVersion(path.join(nodeMods, 'tree-sitter', 'package.json')),
     treeSitterCpp: pkgVersion(path.join(nodeMods, 'tree-sitter-cpp', 'package.json')),
     treeSitterC: pkgVersion(path.join(nodeMods, 'tree-sitter-c', 'package.json'))
   };
+  if (policy.sourceExtensions.includes('.ets')) {
+    versions.typescript = pkgVersion(path.join(nodeMods, 'typescript', 'package.json'));
+  }
+  if (policy.sourceExtensions.includes('.rs')) {
+    const probe = require('../lib/facts/rust').probeBinary();
+    versions.rustProbe = fs.existsSync(probe) ? require('../lib/facts/ids').sha256File(probe) : null;
+  }
+  return versions;
 }
 
 function computeGenVisibility(genDirs) {
@@ -96,7 +104,7 @@ function buildSnapshot(policy) {
   });
 
   const payload = {
-    scope: 'd4-r1',
+    scope: policy.snapshotScope || 'd4-r1',
     source: roots.map((r) => ({
       root: r.root,
       repo: r.repo,
@@ -110,8 +118,11 @@ function buildSnapshot(policy) {
       genVisibility: { referenced: genVisibility.referenced, missing: genVisibility.missing }
     },
     metadata: { sources: metaSrc.map((s) => ({ kind: s.kind, scope: s.scope, rel: s.rel, sha256: s.sha256, bytes: s.bytes })) },
-    tools: toolVersions()
+    tools: toolVersions(policy)
   };
+  if (policy.sourceExtensions.includes('.ets') || policy.sourceExtensions.includes('.rs')) {
+    payload.parseRulesVersion = rulesVersionFor(policy);
+  }
   const snapshotId = ids.snapshotIdOf(payload);
   return { payload, snapshotId, roots, compdbRes, genVisibility, metaSrc };
 }
@@ -130,7 +141,7 @@ function writeSnapshot(snap, policy) {
 
   const snapshot = {
     snapshotId: snap.snapshotId,
-    scope: 'd4-r1',
+    scope: policy.snapshotScope || 'd4-r1',
     policyVersion: policy.version,
     workingTreeDirty: snap.roots.some((r) => r.dirty),
     roots: snap.roots.map((r) => ({
@@ -189,7 +200,7 @@ function writeSnapshot(snap, policy) {
     manifestId,
     snapshotId: snap.snapshotId,
     factSchemaVersion: '1',
-    rulesVersion: RULES_VERSION,
+    rulesVersion: rulesVersionFor(policy),
     obligationVersion: null,
     l6IndexVersion: null,
     verificationRunId: null,

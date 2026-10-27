@@ -1,0 +1,68 @@
+{
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "knowledgeVersion": "sha256:2046964ca080ff6fee5c0540775d2815482c573bd59e8b6b8180246ec7c6896a",
+  "norm": {
+    "normId": "NORM:b8f702a3e92087fd",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-osAccount-sys.md",
+      "line": 2318,
+      "sha256": "961dcf0a8679600f427905e2ad086b4ce9afbd6cbee6d096fea8d4e10dfd64c9",
+      "text": "**需要权限：** ohos.permission.ACCESS_USER_AUTH_INTERNAL"
+    },
+    "permission": "ohos.permission.ACCESS_USER_AUTH_INTERNAL",
+    "header": {
+      "file": "base/account/os_account/services/accountmgr/src/account_iam/account_iam_service.cpp",
+      "sha256": "ce4e0db2fcdca06082ddf2a328d4846c0ec96cc509eb73a0865f7ebaf9fff5e5",
+      "factRef": "F:2142c229d142:file:85785cf02b507fe4"
+    },
+    "appliesTo": [
+      "PrepareRemoteAuth",
+      "AuthUser",
+      "CancelAuth",
+      "GetAvailableStatus",
+      "GetProperty",
+      "GetPropertyByCredentialId",
+      "SetProperty"
+    ],
+    "limitation": "The permission declaration is anchored at the getAvailableStatus section; the other six methods are reviewed as the same user-auth-internal family by the Builder, whose own sections declare the same permission.",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:15a461c1f6c713b9"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "builder-llm-2026-10-25",
+    "reviewedAt": "2026-10-25T02:20:00Z",
+    "decision": "accepted",
+    "normId": "NORM:b8f702a3e92087fd",
+    "proposalVersion": "sha256:49b1a20dedfb7f5a870e954f60a4c9da409c16dae043b29e4f1f8fa2a5d657bb",
+    "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+    "appliesTo": [
+      "PrepareRemoteAuth",
+      "AuthUser",
+      "CancelAuth",
+      "GetAvailableStatus",
+      "GetProperty",
+      "GetPropertyByCredentialId",
+      "SetProperty"
+    ],
+    "applicabilityRationale": {
+      "PrepareRemoteAuth": "js-apis-osAccount-sys.md:2654-2665 section prepareRemoteAuth declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:231 checks it before InnerAccountIAMManager::PrepareRemoteAuth.",
+      "AuthUser": "js-apis-osAccount-sys.md:2866-2877 section authUser declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:240 checks it before InnerAccountIAMManager::AuthUser.",
+      "CancelAuth": "js-apis-osAccount-sys.md:2942-2953 section cancelAuth declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:253 checks it before InnerAccountIAMManager::CancelAuth.",
+      "GetAvailableStatus": "js-apis-osAccount-sys.md:2308-2318 section getAvailableStatus declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:261 checks it before InnerAccountIAMManager::GetAvailableStatus.",
+      "GetProperty": "js-apis-osAccount-sys.md:2357-2368 section getProperty declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:280 checks it before InnerAccountIAMManager::GetProperty.",
+      "GetPropertyByCredentialId": "js-apis-osAccount-sys.md:2474-2485 section getPropertyByCredentialId declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:294 checks it before InnerAccountIAMManager::GetPropertyByCredentialId.",
+      "SetProperty": "js-apis-osAccount-sys.md:2550-2561 section setProperty declares ACCESS_USER_AUTH_INTERNAL; account_iam_service.cpp:308 checks it before InnerAccountIAMManager::SetProperty."
+    },
+    "rationale": "Builder-LLM treats the seven user-auth-internal IDL methods as one reviewed family: each has its own system API reference section declaring ACCESS_USER_AUTH_INTERNAL and each service method checks PERMISSION_ACCESS_USER_AUTH_INTERNAL before its InnerAccountIAMManager operation. The proposal anchor is the getAvailableStatus declaration; the family mapping is a Builder judgment, not independent verification.",
+    "reviewRef": "REVIEW:15a461c1f6c713b9",
+    "sha256": "15a461c1f6c713b9941e0dd8cbda513ac537fab4562e5e577948ca00dda2dd71"
+  }
+}

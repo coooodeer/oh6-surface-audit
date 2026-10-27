@@ -43,7 +43,15 @@ function latestFactsDir() {
     .filter((d) => d.isDirectory() && /^[0-9a-f]{64}$/.test(d.name))
     .map((d) => ({ abs: path.join(root, d.name), mtime: fs.statSync(path.join(root, d.name)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime);
-  return dirs.length ? dirs[0].abs : null;
+  // out/facts 还可能有第三组件补充快照；本测试固定检查五根 d4-r1 产物，
+  // 不把补充快照的数据层当 d4 产物，也不依赖“最新 = d4”这一偶然事实。
+  const d4 = dirs.find((d) => {
+    try {
+      const snap = JSON.parse(fs.readFileSync(path.join(d.abs, 'snapshot.json'), 'utf8'));
+      return snap.scope === 'd4-r1';
+    } catch (_) { return false; }
+  });
+  return d4 ? d4.abs : null;
 }
 
 test('代码层：lib/facts 与 bin/fact-*.js 不出现类特定语义', () => {

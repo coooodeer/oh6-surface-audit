@@ -59,7 +59,30 @@
         "missing": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" } },
         "evidenceRefs": { "type": "array", "items": { "type": "string", "pattern": "^EVID:[0-9a-f]{16}$" } },
         "manifestId": { "type": "string", "pattern": "^AM-[0-9a-f]{16}$" },
-        "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        "snapshotId": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "contractDeviation": { "type": "string", "enum": ["permission-mismatch", "missing-permission-check", "alternate-identity-gate", "none", "unknown", "not-applicable"] },
+        "securityFamily": { "type": "string", "enum": ["scoped-gate-rejection", "gate-permission-weakened", "gate-non-blocking", "gate-subject-mismatch", "no-analyzable-gate"] },
+        "securitySubject": { "type": "string", "minLength": 8 },
+        "securityProposition": { "type": "string", "minLength": 12 },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "line"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "type": "string", "enum": ["permission-check", "native-token-match", "uid-match", "system-app-check", "system-app-or-native", "root-or-native", "cross-user-system-hap-permission"] },
+              "line": { "type": "integer", "minimum": 1 },
+              "permission": { "type": "string" },
+              "nativeProcess": { "type": "string" },
+              "uidSymbol": { "type": "string" },
+              "subjectVariable": { "type": "string" },
+              "site": { "type": "string" },
+              "blocksOperation": { "type": ["boolean", "null"] }
+            }
+          }
+        },
+        "anchorBasis": { "type": "string", "minLength": 2 }
       }
     }
   }

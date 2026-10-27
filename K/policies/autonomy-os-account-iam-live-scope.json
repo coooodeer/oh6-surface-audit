@@ -1,0 +1,53 @@
+{
+  "policyId": "autonomy-os-account-iam-live-scope",
+  "version": "1.0.0",
+  "description": "IAM live 授权批次（用户 2026-10-25 授权，仅本 scope，maxModelRequests≤30）：5 个代表性入口（2 个 scoped excluded + 2 个具名缺口 + 1 个 excluded）。输入/知识/锚点与 IAM off scope 相同，只缩小入口集合。",
+  "scopeId": "os-account-iam-live-pilot",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/account/os_account", "part": "account" }
+  ],
+  "dependencyReadRoots": [
+    {
+      "path": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-osAccount-sys.md",
+      "purpose": "IAccountIAM 权限声明的文档来源（Builder 提案固定整文件 sha256 与声明行）",
+      "sha256": "961dcf0a8679600f427905e2ad086b4ce9afbd6cbee6d096fea8d4e10dfd64c9"
+    }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl；本轮仅 IAccountIAM 的 5 个方法" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.AccountSA.IAccountIAM"],
+    "entryKinds": ["idl"],
+    "methods": ["OpenSession", "GetEnrolledId", "GetCredentialInfo", "GetAccountState", "SetProperty"],
+    "note": "OpenSession/GetEnrolledId/SetProperty 是已有 scoped excluded 的代表；GetCredentialInfo/GetAccountState 是两个具名缺口。"
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.AccountSA.IAccountIAM": { "implOwnerSuffix": "AccountIAMService" }
+    }
+  },
+  "binding": { "minNameLength": 3, "ownerMustEqual": true, "ambiguousIsInsufficient": true },
+  "operationRecipe": {
+    "instanceExpression": "InnerAccountIAMManager::GetInstance",
+    "targetClass": "InnerAccountIAMManager",
+    "entryOwnerSuffix": "AccountIAMService"
+  },
+  "checkVocabulary": {
+    "strong": ["CheckPermission", "VerifyPermission", "VerifyAccessToken", "CheckCallingPermission", "CheckSystemApp"],
+    "weak": ["AccessToken", "Permission", "GetCallingTokenID", "GetCallingUid"],
+    "callees": ["CheckPermission", "VerifyPermission", "VerifyAccessToken", "CheckCallingPermission", "CheckSystemApp", "GetCallingTokenID", "GetCallingUid"],
+    "guardVariables": ["permission", "tokenId", "callingTokenId", "callingUid"]
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"], "deterministicOrder": "sha256(path) asc" },
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  }
+}

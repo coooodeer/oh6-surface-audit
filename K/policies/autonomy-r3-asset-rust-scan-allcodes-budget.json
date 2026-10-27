@@ -1,0 +1,17 @@
+{
+  "policyId": "autonomy-r3-asset-rust-scan-allcodes-budget",
+  "version": "1.0.0",
+  "description": "R3 Rust 全 code 边际成本测量 run；无模型请求。",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 150,
+    "maxInputTokens": 200000,
+    "maxOutputTokens": 40000,
+    "maxWallSeconds": 1200,
+    "maxTasks": 8,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 12,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "policyId": "autonomy-ces-icommonevent-vertical-scope",
+  "version": "1.0.0",
+  "description": "CES 单入口纵向验证：RemoveStickyCommonEvent。目标是验证 system-app-or-native 门禁、native 旁路权限门禁、funcResult 拒绝分支与内联权限字面量；不扩展为 ICommonEvent 全接口审计。",
+  "scopeId": "ces-icommonevent-vertical",
+  "snapshotId": "sha256:9bbb04f8f62e125dd747e2dc410b46a0634d50515bebac6248166b3483a5f29f",
+  "staticSuite": true,
+  "roots": [{ "root": "base/notification/common_event_service", "part": "notification" }],
+  "entrySources": [{ "kind": "idl", "enabled": true }],
+  "entryFilter": {
+    "interfaces": ["OHOS.EventFwk.ICommonEvent"],
+    "entryKinds": ["idl"],
+    "methods": ["RemoveStickyCommonEvent"]
+  },
+  "modelMetadata": {
+    "interfaces": { "OHOS.EventFwk.ICommonEvent": { "implOwnerSuffix": "CommonEventManagerService" } }
+  },
+  "binding": { "minNameLength": 3, "ownerMustEqual": true, "ambiguousIsInsufficient": true },
+  "operationRecipe": {
+    "kind": "member-call",
+    "receiver": "innerCommonEventManager_",
+    "separator": "->",
+    "targetClass": "InnerCommonEventManager",
+    "entryOwnerSuffix": "CommonEventManagerService"
+  },
+  "gateVocabulary": {
+    "checkCallees": ["VerifyAccessToken"],
+    "gateTokens": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp"],
+    "identityTokens": ["tokenId", "isSubsystem", "VerifyNativeToken", "IsSystemApp", "VerifyAccessToken"],
+    "systemAppOrNativeShape": true,
+    "note": "contract 只取 VerifyAccessToken 作为唯一 checkRef；VerifyNativeToken/IsSystemApp 由门禁枚举显式识别。"
+  },
+  "contractVocabulary": {
+    "inlineLiteral": true,
+    "note": "CES 把权限字面量写成函数内 const std::string；只在该 scope 开启，默认仍按头文件常量比较。"
+  },
+  "checkVocabulary": {
+    "strong": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckPermission"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid", "GetCallingTokenID"],
+    "callees": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckPermission", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["tokenId", "permission", "callingUid", "isSubsystem"]
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 5000, "maxIndexCalls": 30000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

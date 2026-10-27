@@ -1,0 +1,70 @@
+{
+  "policyId": "autonomy-r3-asset-rust-verdict-scope",
+  "version": "1.0.0",
+  "scopeId": "r3-asset-rust-query-verdict",
+  "snapshotId": "sha256:e3284b8879ffcd644db5fb0b7783169e6bae4d29897ea091a42132958f0ec280",
+  "staticSuite": true,
+  "roots": [{ "root": "base/security/asset", "part": "security" }],
+  "entrySources": [{ "kind": "on-remote-request", "enabled": true }, { "kind": "ipc-code", "enabled": true }],
+  "entryFilter": {
+    "entryKinds": ["ipc-code"],
+    "methods": ["query"],
+    "onRemoteRequestNames": ["on_remote_request"]
+  },
+  "ipcDispatch": {
+    "shape": "rust-enum",
+    "codeHeader": "base/security/asset/frameworks/ipc/src/lib.rs",
+    "codeHeaderSha256": "d0a72fce5096289d6dcf48bd7d58648c845eb0fd045b025ba48a765166fb7086",
+    "stubFile": "base/security/asset/services/core_service/src/stub.rs",
+    "handlerOwner": "AssetService",
+    "dispatchNames": ["on_remote_request"],
+    "expectedEnum": ["Add", "Remove", "Update", "PreQuery", "Query", "PostQuery", "QuerySyncResult"],
+    "probeSha256": "652feee2cf0c5d693284ec296ef00982730725334a489435d5b89db639cebc05"
+  },
+  "ipcCodeVerdict": {
+    "shape": "rust-enum",
+    "code": "Query",
+    "handler": "query",
+    "handlerOwner": "AssetService",
+    "expectedEnum": ["Add", "Remove", "Update", "PreQuery", "Query", "PostQuery", "QuerySyncResult"],
+    "enumFile": "base/security/asset/frameworks/ipc/src/lib.rs",
+    "stubFile": "base/security/asset/services/core_service/src/stub.rs",
+    "serviceFile": "base/security/asset/services/core_service/src/lib.rs",
+    "operationFile": "base/security/asset/services/core_service/src/operations/operation_query.rs",
+    "gateFile": "base/security/asset/services/core_service/src/operations/common/permission_check.rs",
+    "callingFile": "base/security/asset/services/common/src/calling_info.rs",
+    "processFile": "base/security/asset/services/common/src/process_info.rs",
+    "ffiFile": "base/security/asset/services/os_dependency/src/access_token_wrapper.cpp",
+    "ffiHeaderFile": "base/security/asset/services/os_dependency/inc/access_token_wrapper.h",
+    "profileFile": "base/security/asset/sa_profile/8100.json",
+    "probeSha256": "652feee2cf0c5d693284ec296ef00982730725334a489435d5b89db639cebc05",
+    "pinned": {
+      "serviceBuild": {
+        "file": "base/security/asset/services/core_service/BUILD.gn",
+        "sha256": "0e03f9a795c8d8e763e5ae7a6ce9b1f7ba5be060926f5ae0702259b2047ff014"
+      },
+      "ipcSkeleton": {
+        "file": "foundation/communication/ipc/ipc/native/src/core/framework/source/ipc_skeleton.cpp",
+        "sha256": "4a8c00e8901ab59045696e21b2a0c7e7bd7d007127ad2a7b004cea1eb6f5b7b9"
+      },
+      "binderInvoker": {
+        "file": "foundation/communication/ipc/ipc/native/src/core/invoker/source/binder_invoker.cpp",
+        "sha256": "d05264ffee8a57b0759623a5576c95c850910acf0383225585d6bafc74e473f0"
+      }
+    }
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".rs", ".cpp", ".c", ".h"],
+    "deterministicOrder": "sha256(path) asc"
+  },
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  }
+}

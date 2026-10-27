@@ -21,7 +21,12 @@ function latestFactsDir() {
     .filter((d) => d.isDirectory() && /^[0-9a-f]{64}$/.test(d.name))
     .map((d) => ({ abs: path.join(FACTS_ROOT, d.name), mtime: fs.statSync(path.join(FACTS_ROOT, d.name)).mtimeMs }))
     .sort((a, b) => b.mtime - a.mtime);
-  return dirs.length ? dirs[0].abs : null;
+  // 此验收依赖 metadata 每表非空；只选已构建完整派生层的真实 d4 基线。
+  return dirs.find((d) => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(d.abs, 'snapshot.json'), 'utf8')).scope === 'd4-r1';
+    } catch (_) { return false; }
+  })?.abs || null;
 }
 
 const DIR = latestFactsDir();

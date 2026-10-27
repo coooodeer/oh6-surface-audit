@@ -1,0 +1,31 @@
+{
+  "policyId": "autonomy-security-anchors",
+  "version": "1.0.1",
+  "description": "securityDecision 预期策略锚点（指南 §15.4 双命题裁决，1.0.30 修订）。快照外的外部材料按 sha256 固定；运行与 check 复算时重新哈希核对，漂移即拒绝。",
+  "permissionDefinitions": {
+    "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+    "sha256": "b710d15054d7d04fb3d72d6741bba5831fab96b56f8996b348c2ec8eaf5f5da2",
+    "permissions": [
+      "ohos.permission.SET_SANDBOX_POLICY",
+      "ohos.permission.CHECK_SANDBOX_POLICY",
+      "ohos.permission.FILE_ACCESS_PERSIST",
+      "ohos.permission.FILE_ACCESS_MANAGER"
+    ],
+    "derivation": "availableLevel/availableType/grantMode/provisionEnable 只描述权限的可申请路径：availableLevel 高于主体 APL 的权限仍可能在 provisionEnable（ACL）开启时经受限权限申请路径获得（见 docs/zh-cn/application-dev/security/AccessToken 的受限开放权限与 declare-permissions-in-acl 说明）。因此等级不单独排除主体持有可能性；只有等级排除且 ACL 未使能时才可推出 normal-application 主体不可持有，且该推导仅约束主体持有可能性，不推导不同权限持有者集合之间的包含关系。",
+    "normalApplicationSubject": {
+      "kind": "normal-application",
+      "holdsPermissionsOfLevels": ["normal"],
+      "cannotHoldPermissionsOfLevels": ["system_basic", "system_core"]
+    }
+  },
+  "saProfile": {
+    "file": "base/accesscontrol/sandbox_manager/services/sandbox_manager/main/sa_profile/proc_resident/sandbox_manager_service.json",
+    "sha256": "9aa71b63dfdf28a060a266ecd1a2b7869de5cebb9bb4f62f518413c4d4542f9a",
+    "process": "sandbox_manager_service",
+    "systemAbilityId": 3508,
+    "derivation": "SA profile 声明该能力运行于独立的系统进程 sandbox_manager_service；本文件只提供进程归属事实，不单独确立任何接口的预期授权策略。"
+  },
+  "docOnlyPolicyCap": "candidate",
+  "aclNote": "ACL 使能（provisionEnable=true）的权限可获得性依赖部署签名配置，静态快照无法判定；锚点不因等级单独支撑安全 finding（§24.28 复核修正）。",
+  "note": "文档原文与 Builder 自审假设不是本锚点；仅以它们为预期策略的安全命题上限为 candidate（指南 §15.4）。"
+}

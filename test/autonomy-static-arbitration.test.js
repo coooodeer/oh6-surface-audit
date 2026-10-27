@@ -14,7 +14,7 @@ const knowledge = [
   'K/norms/7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f/knowledge.json'
 ].join(',');
 const common = ['--scope=K/policies/autonomy-pilot-scope.json',
-  '--budget=K/policies/autonomy-pilot-budget.json', `--knowledge=${knowledge}`];
+  '--budget=K/policies/autonomy-pilot-budget.json', '--legacy-contract', `--knowledge=${knowledge}`];
 
 test('arbitration requires an accepted model decision and a scoped operation', () => {
   const excluded = { status: 'excluded', operationRef: 'F:target' };
@@ -39,9 +39,12 @@ test('accepted Runtime-LLM counterexample downgrades excluded and promotes scope
     const gateway = originalCreate(options);
     if (options.mode === 'live') gateway._transport = {
       keyPresent: () => true,
-      send: async () => {
+      send: async (request) => {
         sends++;
-        return { kind: 'ok', content: JSON.stringify({ decision: 'refuted', evidenceRefs: [],
+        const line = /允许引用的证据 ID：(.+)/.exec(request.messages.map((m) => m.content).join('\n'));
+        const ref = line ? (line[1].split(',').map((s) => s.trim())
+          .find((item) => item.startsWith('EVID:')) || 'EVID:none') : 'EVID:none';
+        return { kind: 'ok', content: JSON.stringify({ decision: 'refuted', evidenceRefs: [ref],
           rationale: 'Check may not protect the operation.' }),
         usage: { promptTokens: 10, completionTokens: 10 }, usageKnown: true,
         finishReason: 'stop', model: 'test-transport', wallMs: 1 };

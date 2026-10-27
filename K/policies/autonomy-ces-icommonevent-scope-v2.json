@@ -1,0 +1,66 @@
+{
+  "policyId": "autonomy-ces-icommonevent-scope-v2",
+  "version": "1.0.0",
+  "description": "ICommonEvent 17 入口复算（v2）：在原有入口集合上启用 system-app-or-native、native 旁路权限门禁、funcResult 拒绝分支与内联权限字面量。旧 v1 scope/run 保持只读。",
+  "scopeId": "ces-icommonevent-pilot-v2",
+  "snapshotId": "sha256:9bbb04f8f62e125dd747e2dc410b46a0634d50515bebac6248166b3483a5f29f",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/notification/common_event_service", "part": "notification" }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl；入口集合与 v1 相同（ICommonEvent 17 个 IDL 方法）" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.EventFwk.ICommonEvent"],
+    "entryKinds": ["idl"]
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.EventFwk.ICommonEvent": { "implOwnerSuffix": "CommonEventManagerService" }
+    }
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "operationRecipe": {
+    "kind": "member-call",
+    "receiver": "innerCommonEventManager_",
+    "separator": "->",
+    "targetClass": "InnerCommonEventManager",
+    "entryOwnerSuffix": "CommonEventManagerService"
+  },
+  "gateVocabulary": {
+    "checkCallees": ["VerifyAccessToken"],
+    "gateTokens": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp"],
+    "identityTokens": ["tokenId", "isSubsystem", "VerifyNativeToken", "IsSystemApp", "VerifyAccessToken"],
+    "systemAppOrNativeShape": true,
+    "note": "只把 VerifyAccessToken 作为唯一 checkRef；VerifyNativeToken/IsSystemApp 由显式形状识别，其他 CES 身份形状若未建模仍保留缺口。"
+  },
+  "contractVocabulary": {
+    "inlineLiteral": true,
+    "note": "CES 的权限字面量是函数内 const std::string；只在本 scope 开启。"
+  },
+  "checkVocabulary": {
+    "strong": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckPermission"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid", "GetCallingTokenID"],
+    "callees": ["VerifyAccessToken", "VerifyNativeToken", "IsSystemApp", "CheckPermission", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["tokenId", "callerToken", "permission", "callingUid", "callingTokenId", "isSubsystem"]
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc"
+  },
+  "limits": {
+    "maxIndexFunctions": 5000,
+    "maxIndexCalls": 30000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  }
+}

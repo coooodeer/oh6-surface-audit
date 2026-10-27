@@ -1,0 +1,73 @@
+{
+  "policyId": "access-token-r1",
+  "version": "1.0.0",
+  "description": "R2 可扩展事实层：access-token 分片基线（独立快照，不改写 r1 原件）。分层扩面抽样：base/security/access_token（C/C++、IDL、SA、权限服务）。独立补充快照，不改写 d4-r1。",
+  "snapshotScope": "access-token-r2",
+  "roots": [
+    {
+      "root": "base/security/access_token",
+      "part": "security"
+    }
+  ],
+  "compdbParts": [
+    "security"
+  ],
+  "sourceExtensions": [
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".hxx"
+  ],
+  "cExtensions": [
+    ".c"
+  ],
+  "testPathPattern": "/(test|tests|unittest|fuzztest|mock|moduletest|systemtest)/",
+  "testFilePattern": "(_test|_unittest|_fuzzer|_mock)\\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$",
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000
+  },
+  "metadataSources": [
+    {
+      "kind": "idl",
+      "glob": "**/*.idl",
+      "scope": "roots",
+      "required": true
+    },
+    {
+      "kind": "sa",
+      "glob": "**/sa_profile/**/*.json",
+      "scope": "roots",
+      "required": true
+    },
+    {
+      "kind": "permission",
+      "glob": "**/*permission*.json",
+      "scope": "roots",
+      "required": false
+    },
+    {
+      "kind": "napi",
+      "glob": null,
+      "scope": "code-derived",
+      "required": true
+    },
+    {
+      "kind": "harness",
+      "glob": null,
+      "scope": "definition-pending",
+      "required": false
+    },
+    {
+      "kind": "permission-authority",
+      "file": "base/security/access_token/services/accesstokenmanager/permission_definitions.json",
+      "scope": "external-authority",
+      "required": false
+    }
+  ],
+  "derivedFrom": "scope-access-token-r1.json"
+}

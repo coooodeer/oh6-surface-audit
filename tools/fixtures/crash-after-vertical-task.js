@@ -1,11 +1,23 @@
 'use strict';
 
+const fs = require('node:fs');
 const { RunStore } = require('../../lib/autonomy/store');
+
+// 崩溃 fixture 的确定性“已死 owner”标记：真实 writer 只写 pid > 0；若保留真实 pid，
+// Windows 可能把它复用给无关进程，resume 会误判原 writer 仍存活（默认并发全量测试的
+// 瞬时失败来源）。锁保护本身不变，见 lib/autonomy/store.js 的 afterCrash。
+function markDeadOwner(store) {
+  const file = store.file('run.lock');
+  const lock = JSON.parse(fs.readFileSync(file, 'utf8'));
+  fs.writeFileSync(file, `${JSON.stringify({ ...lock, pid: -1 })}\n`, { encoding: 'utf8' });
+}
+
 const original = RunStore.prototype.writeCheckpoint;
 RunStore.prototype.writeCheckpoint = function writeCheckpointAndStop(checkpoint) {
   const result = original.call(this, checkpoint);
   if (checkpoint.tasks.done === 1 && checkpoint.lastTaskId && !checkpoint.stoppedReason) {
-    require('node:fs').writeSync(1, `${JSON.stringify({ runId: this.runId, dir: this.dir })}\n`);
+    markDeadOwner(this);
+    fs.writeSync(1, `${JSON.stringify({ runId: this.runId, dir: this.dir })}\n`);
     process.exit(71);
   }
   return result;
@@ -19,6 +31,7 @@ if (staticSuite) {
   require('../../bin/autonomy').main(['run', replayRun ? '--mode=replay' : '--mode=off',
     ...(replayRun ? [replayRun] : []),
     ...(maxTasks ? [maxTasks] : []),
+    '--legacy-contract',
     '--scope=K/policies/autonomy-pilot-scope.json', '--budget=K/policies/autonomy-pilot-budget.json',
     '--knowledge=K/norms/050e10d78c6e93541813beb477a3c1000cbfd46817a5bf8fbf7bc5dc21b7572c/knowledge.json,K/norms/7b1ad465ab401111ad3bfa060d31e4e790e390ad3c6f68d7b30b74ee09fd215f/knowledge.json'
   ]).then((code) => { process.exitCode = code; });

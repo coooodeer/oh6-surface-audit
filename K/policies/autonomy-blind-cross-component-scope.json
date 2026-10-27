@@ -1,0 +1,67 @@
+{
+  "policyId": "autonomy-blind-cross-component-scope",
+  "version": "1.0.0",
+  "description": "跨组件受控盲测 scope：sandbox_manager + os_account 的受控变异体语料（18 入口）。运行器只读取本 scope、已发布知识与预算，不读取期望标签；标签在 eval/autonomy/blind-cross-component.json。",
+  "scopeId": "blind-cross-component",
+  "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+  "staticSuite": true,
+  "roots": [
+    { "root": "../oh6-surface-audit/test/fixtures/autonomy", "part": "blind" }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "受控语料的 metadata/idl.jsonl" }
+  ],
+  "entryFilter": {
+    "interfaces": [
+      "OHOS.AccessControl.SandboxManager.ISandboxManager",
+      "OHOS.AccountSA.IAccountIAM"
+    ],
+    "entryKinds": ["idl"]
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.AccessControl.SandboxManager.ISandboxManager": { "implOwnerSuffix": "SandboxManagerService" },
+      "OHOS.AccountSA.IAccountIAM": { "implOwnerSuffix": "AccountIAMService" }
+    }
+  },
+  "binding": { "minNameLength": 3, "ownerMustEqual": true, "ambiguousIsInsufficient": true,
+    "preferSameFile": true,
+    "callerKey": "fact",
+    "note": "受控语料把同一入口的多个变体放在不同文件；preferSameFile 只在同名候选里优先与 IDL 元数据同文件的实现，callerKey=fact 隔离同名变体的调用事实。默认关闭，pilot/真实组件不变。" },
+  "operationRecipes": [
+    {
+      "kind": "get-instance-call",
+      "instanceExpression": "PolicyInfoManager::GetInstance",
+      "targetClass": "PolicyInfoManager",
+      "entryOwnerSuffix": "SandboxManagerService"
+    },
+    {
+      "kind": "get-instance-call",
+      "instanceExpression": "InnerAccountIAMManager::GetInstance",
+      "targetClass": "InnerAccountIAMManager",
+      "entryOwnerSuffix": "AccountIAMService"
+    }
+  ],
+  "gateVocabulary": {
+    "checkCallees": ["CheckPermission"],
+    "gateTokens": ["CheckPermission", "VerifyAccessToken", "VerifyNativeToken", "IsSystemApp"],
+    "identityTokens": ["tokenId", "callerToken"],
+    "note": "受控语料只含 CheckPermission 直接/helper 形状与本轮身份 token；不引入 IAM/CES 未验证形状。"
+  },
+  "checkVocabulary": {
+    "strong": ["CheckPermission", "IsFileManagerCalling", "GetCallingUid"],
+    "weak": ["AccessToken", "Permission"],
+    "callees": ["CheckPermission", "IsFileManagerCalling", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["callingTokenId", "tokenId", "permission"]
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": {
+    "maxIndexFunctions": 200,
+    "maxIndexCalls": 200,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  },
+  "limitsNote": "受控语料 24 functions / 33 calls；上限远高于实际，断言不截断。"
+}

@@ -1,0 +1,68 @@
+{
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "knowledgeVersion": "sha256:71191d8bd0eadd5e7b7a05d6ab55e0e3df4d38918663a21e34520e3ed47236a4",
+  "norm": {
+    "normId": "NORM:7f6e1f58080e1890",
+    "state": "accepted",
+    "kind": "authorization",
+    "source": {
+      "file": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-osAccount-sys.md",
+      "line": 4468,
+      "sha256": "961dcf0a8679600f427905e2ad086b4ce9afbd6cbee6d096fea8d4e10dfd64c9",
+      "text": "**需要权限：** ohos.permission.MANAGE_USER_IDM"
+    },
+    "permission": "ohos.permission.MANAGE_USER_IDM",
+    "header": {
+      "file": "base/account/os_account/services/accountmgr/src/account_iam/account_iam_service.cpp",
+      "sha256": "ce4e0db2fcdca06082ddf2a328d4846c0ec96cc509eb73a0865f7ebaf9fff5e5",
+      "factRef": "F:2142c229d142:file:85785cf02b507fe4"
+    },
+    "appliesTo": [
+      "OpenSession",
+      "CloseSession",
+      "AddCredential",
+      "UpdateCredential",
+      "Cancel",
+      "DelCred",
+      "DelUser"
+    ],
+    "limitation": "The system API reference declares the permission for the JS openSession/closeSession/addCredential/updateCredential/cancel/delCred/delUser APIs; IDL method names differ only in capitalization and the native client forwards to IAccountIAM. Applicability is a Builder-LLM mapping, not a human review.",
+    "authority": "builder-llm-review",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewRef": "REVIEW:78c521c1629193ec"
+  },
+  "review": {
+    "authority": "builder-llm-review",
+    "origin": "builder-llm",
+    "generatedBy": "builder-llm",
+    "needsHumanTuning": true,
+    "reviewer": "builder-llm-2026-10-25",
+    "reviewedAt": "2026-10-25T02:20:00Z",
+    "decision": "accepted",
+    "normId": "NORM:7f6e1f58080e1890",
+    "proposalVersion": "sha256:a7fc5a89f4004911d273788dab7f8dfdc815dacebb34a86bee653ffaa818a662",
+    "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+    "appliesTo": [
+      "OpenSession",
+      "CloseSession",
+      "AddCredential",
+      "UpdateCredential",
+      "Cancel",
+      "DelCred",
+      "DelUser"
+    ],
+    "applicabilityRationale": {
+      "OpenSession": "js-apis-osAccount-sys.md:4468 declares MANAGE_USER_IDM for openSession; account_iam_service.cpp:95 checks PERMISSION_MANAGE_USER_IDM before InnerAccountIAMManager::OpenSession.",
+      "CloseSession": "js-apis-osAccount-sys.md:4701-4712 section closeSession declares MANAGE_USER_IDM; account_iam_service.cpp:112 checks the same constant before InnerAccountIAMManager::CloseSession.",
+      "AddCredential": "js-apis-osAccount-sys.md:4555-4566 section addCredential declares MANAGE_USER_IDM; account_iam_service.cpp:130 checks it before InnerAccountIAMManager::AddCredential.",
+      "UpdateCredential": "js-apis-osAccount-sys.md:4623-4634 section updateCredential declares MANAGE_USER_IDM; account_iam_service.cpp:151 checks it before InnerAccountIAMManager::UpdateCredential.",
+      "Cancel": "js-apis-osAccount-sys.md:4737-4748 section cancel declares MANAGE_USER_IDM; account_iam_service.cpp:166 checks it before InnerAccountIAMManager::Cancel.",
+      "DelCred": "js-apis-osAccount-sys.md:4822-4833 section delCred declares MANAGE_USER_IDM; account_iam_service.cpp:179 checks it before InnerAccountIAMManager::DelCred.",
+      "DelUser": "js-apis-osAccount-sys.md:4776-4787 section delUser declares MANAGE_USER_IDM; account_iam_service.cpp:195 checks it before InnerAccountIAMManager::DelUser."
+    },
+    "rationale": "Builder-LLM review of the os_account IAccountIAM manage-credential family: the system API reference declares MANAGE_USER_IDM on each JS section, and the C++ service method (declared with the same name modulo capitalization) checks PERMISSION_MANAGE_USER_IDM through its private CheckPermission helper before the InnerAccountIAMManager operation. Applicability is a Builder-LLM mapping from JS API sections to IDL methods; it does not establish that the expected authorization policy is independently verified.",
+    "reviewRef": "REVIEW:78c521c1629193ec",
+    "sha256": "78c521c1629193ece47e750bef525f7aa3022775fd87de2233bffbaf6cc8200d"
+  }
+}

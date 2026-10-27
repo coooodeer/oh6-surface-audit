@@ -1,0 +1,21 @@
+{
+  "policyId": "autonomy-ces-ani-scope",
+  "version": "1.0.0",
+  "scopeId": "r3-ces-ani-remove-sticky-subset",
+  "snapshotId": "sha256:dfef986b671e1f51be558bab1389cd69bf04529bd1355e6f2f444a99d72fb359",
+  "roots": [{ "root": "base/notification/common_event_service", "part": "notification" }],
+  "entrySources": [{ "kind": "arkts-export", "enabled": true }],
+  "entryFilter": { "entryKinds": ["arkts-export"] },
+  "aniBinding": {
+    "method": "removeStickyCommonEvent",
+    "library": "ani_commoneventmanager",
+    "etsFile": "base/notification/common_event_service/interfaces/kits/ani/common_event/ets/@ohos.commonEventManager.ets",
+    "cppFile": "base/notification/common_event_service/interfaces/kits/ani/common_event/src/ani_common_event.cpp",
+    "buildFile": "base/notification/common_event_service/interfaces/kits/ani/common_event/BUILD.gn",
+    "buildSha256": "bc15e61d6c34a35e75ec7b2d8b5d58efba1f15bad0edd26801d317965b200189"
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".ets"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 5000, "maxIndexCalls": 30000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

@@ -1,0 +1,22 @@
+{
+  "policyId": "autonomy-os-account-iam-live-budget",
+  "version": "1.0.0",
+  "description": "IAM live 授权批次预算（用户授权上限 30）：5 个入口，全局 6 次模型请求、每任务 2 次；超出即 budget-stop，不静默扩量。",
+  "budget": {
+    "maxModelRequests": 6,
+    "maxToolCalls": 200,
+    "maxInputTokens": 300000,
+    "maxOutputTokens": 60000,
+    "maxWallSeconds": 1800,
+    "maxTasks": 10,
+    "maxTaskModelRequests": 2,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  },
+  "notes": [
+    "仅 K/policies/autonomy-os-account-iam-live-scope.json 的 5 个入口；不外发其他 base/foundation 源码。",
+    "每个入口至多 1 次 security-gate-review；6 次上限含余量。",
+    "模型意见只能降级/保留缺口，不能升级 finding；证据门拒绝的意见计入失败。"
+  ]
+}

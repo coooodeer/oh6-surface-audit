@@ -1,0 +1,81 @@
+{
+  "policyId": "autonomy-os-account-iam-scope",
+  "version": "1.0.0",
+  "description": "第二组件纵向扩面 scope：base/account/os_account 的 IAccountIAM 接口（17 个 IDL 方法）。只覆盖该接口，不表示 os_account 其余 18 个 IDL 接口或全组件已审计；coverageSample.fraction=0 明确本轮不做文件抽样。",
+  "scopeId": "os-account-iam-pilot",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/account/os_account", "part": "account" }
+  ],
+  "dependencyReadRoots": [
+    {
+      "path": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-osAccount-sys.md",
+      "purpose": "IAccountIAM 权限声明的文档来源（Builder 提案把声明行与整文件 sha256 固定进 knowledgeVersion）",
+      "sha256": "961dcf0a8679600f427905e2ad086b4ce9afbd6cbee6d096fea8d4e10dfd64c9",
+      "note": "位于五根事实快照之外；只读消费，不进入 auditRoots 统计。"
+    }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl；本轮仅 IAccountIAM（entryFilter）" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.AccountSA.IAccountIAM"],
+    "entryKinds": ["idl"],
+    "note": "E1 只纳入一个接口的 17 个 IDL 方法；SA/NAPI/OnRemoteRequest 与覆盖抽样不在本轮分母内。"
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.AccountSA.IAccountIAM": { "implOwnerSuffix": "AccountIAMService" }
+    },
+    "note": "IDL 绑定 = 方法名 + 该接口的精确 owner 段；歧义保持 unresolved（ambiguousIsInsufficient）。"
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "operationRecipe": {
+    "instanceExpression": "InnerAccountIAMManager::GetInstance",
+    "targetClass": "InnerAccountIAMManager",
+    "entryOwnerSuffix": "AccountIAMService",
+    "note": "IAccountIAM 方法的敏感操作形态：InnerAccountIAMManager::GetInstance().<Method>(...) 的 name-only 调用，按入口命名空间拼出 <prefix>::InnerAccountIAMManager::<Method>，要求同 argc 生产实现唯一且源码哈希与快照一致。"
+  },
+  "checkVocabulary": {
+    "strong": [
+      "CheckPermission",
+      "VerifyPermission",
+      "VerifyAccessToken",
+      "CheckCallingPermission",
+      "CheckSystemApp"
+    ],
+    "weak": ["AccessToken", "Permission", "GetCallingTokenID", "GetCallingUid"],
+    "callees": [
+      "CheckPermission",
+      "VerifyPermission",
+      "VerifyAccessToken",
+      "CheckCallingPermission",
+      "CheckSystemApp",
+      "GetCallingTokenID",
+      "GetCallingUid"
+    ],
+    "guardVariables": ["permission", "tokenId", "callingTokenId", "callingUid"],
+    "note": "本组件实际门禁是私有成员 CheckPermission(CONST) 一跳委托 AccountPermissionManager::VerifyPermission；词表不用于替代门禁识别，识别结果由 gates.resolvePermissionHelper 有界核验。"
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc",
+    "note": "E1 不做文件抽样；未覆盖的 1,025 文件中除本接口实现与操作目标外均未分析。"
+  },
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  },
+  "limitsNote": "实测该 root 有 7,014 函数与 42,631 calls；上限只为容纳本组件完整索引，不是性能结论，也不是全组件完整性承诺。E0 会记录实际行数与 indexTruncated。"
+}

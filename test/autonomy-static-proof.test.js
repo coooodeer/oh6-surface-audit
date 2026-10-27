@@ -137,6 +137,7 @@ test('published suite distinguishes direct checks, documented mismatch, alternat
 
 test('suite scan aligns task operation, question, assessment and report, then check recomputes', () => {
   const run = spawnSync(process.execPath, ['bin/autonomy.js', 'run', '--mode=off',
+    '--legacy-contract',
     '--scope=K/policies/autonomy-pilot-scope.json', '--budget=K/policies/autonomy-pilot-budget.json',
     '--task=TASK:b8aebdde9b294f64',
     `--knowledge=K/norms/${knowledgeFiles.SetPolicyAsync}/knowledge.json,` +

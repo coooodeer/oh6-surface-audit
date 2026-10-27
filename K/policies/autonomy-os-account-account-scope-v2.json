@@ -1,0 +1,70 @@
+{
+  "policyId": "autonomy-os-account-account-scope-v2",
+  "version": "1.0.0",
+  "description": "IAccount 16 入口复算（v2）：在原有入口集合上启用 argument-type 重载消歧、CheckSystemApp system-app 门禁与 HasAccountRequestPermission helper 形状。旧 v1 scope/run 保持只读。",
+  "scopeId": "os-account-account-pilot-v2",
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "staticSuite": true,
+  "roots": [
+    { "root": "base/account/os_account", "part": "account" }
+  ],
+  "dependencyReadRoots": [
+    {
+      "path": "docs/zh-cn/application-dev/reference/apis-basic-services-kit/js-apis-distributed-account-sys.md",
+      "purpose": "IAccount 的分布式账号权限声明来源（Builder 提案固定整文件 sha256 与声明行）",
+      "sha256": "247ad01b7480eeeb908329c087556a71991131d747b6a9c10160052e1b078b78"
+    }
+  ],
+  "entrySources": [
+    { "kind": "idl", "enabled": true, "note": "metadata/idl.jsonl；入口集合与 v1 相同（IAccount 16 个 IDL 方法）" }
+  ],
+  "entryFilter": {
+    "interfaces": ["OHOS.AccountSA.IAccount"],
+    "entryKinds": ["idl"],
+    "note": "只纳入 IAccount 的 16 个 IDL 方法；SA/NAPI/OnRemoteRequest 与文件抽样不在本轮分母内。"
+  },
+  "modelMetadata": {
+    "interfaces": {
+      "OHOS.AccountSA.IAccount": { "implOwnerSuffix": "AccountMgrService" }
+    }
+  },
+  "binding": {
+    "minNameLength": 3,
+    "ownerMustEqual": true,
+    "ambiguousIsInsufficient": true
+  },
+  "operationRecipe": {
+    "instanceExpression": "OhosAccountManager::GetInstance",
+    "targetClass": "OhosAccountManager",
+    "entryOwnerSuffix": "AccountMgrService",
+    "disambiguate": "argument-type",
+    "note": "仅覆盖 OhosAccountManager::GetInstance().<Method>(...)；两个 argc=3 的 OhosAccountStateChange 重载用入口签名实参类型做有界消歧，无法唯一时不产出候选。"
+  },
+  "gateVocabulary": {
+    "checkCallees": ["CheckPermission", "HasAccountRequestPermission", "VerifyAccessToken"],
+    "gateTokens": ["HasAccountRequestPermission", "CheckSystemApp"],
+    "identityTokens": [],
+    "systemAppShape": true,
+    "note": "CheckSystemApp 仅识别 caller 形式（CheckSystemApp(false) 记为 self-scan modifier，不当调用方门禁）；HasAccountRequestPermission 由 helper 体 VerifyAccessToken + PERMISSION_GRANTED 解析。"
+  },
+  "checkVocabulary": {
+    "strong": ["HasAccountRequestPermission", "PermissionCheck", "CheckSystemApp", "VerifyAccessToken", "CheckPermission"],
+    "weak": ["AccessToken", "Permission", "GetCallingUid", "GetCallingTokenID"],
+    "callees": ["HasAccountRequestPermission", "PermissionCheck", "CheckSystemApp", "VerifyAccessToken", "CheckPermission", "GetCallingUid", "GetCallingTokenID"],
+    "guardVariables": ["permission", "permissionName", "callingUid", "callingTokenID"]
+  },
+  "coverageSample": {
+    "fraction": 0,
+    "basis": "file",
+    "role": "production",
+    "extensions": [".c", ".cc", ".cpp", ".cxx"],
+    "deterministicOrder": "sha256(path) asc"
+  },
+  "limits": {
+    "maxIndexFunctions": 9000,
+    "maxIndexCalls": 50000,
+    "maxWindowLines": 80,
+    "maxEvidenceBytes": 262144,
+    "toolTimeoutMs": 30000
+  }
+}

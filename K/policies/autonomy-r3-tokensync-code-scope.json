@@ -1,0 +1,27 @@
+{
+  "policyId": "autonomy-r3-tokensync-code-scope",
+  "version": "1.0.0",
+  "scopeId": "r3-tokensync-enum-dispatch-probe",
+  "snapshotId": "sha256:eedbad92272908c63ab64dc1396d3709647dba00f3cb16dadeefb7b59fecbd80",
+  "roots": [{ "root": "base/security/access_token", "part": "security" }],
+  "entrySources": [{ "kind": "on-remote-request", "enabled": true },
+    { "kind": "ipc-code", "enabled": true }],
+  "entryFilter": { "entryKinds": ["ipc-code"],
+    "exactOnRemoteRequest": true },
+  "ipcDispatch": {
+    "shape": "tokensync-enum",
+    "codeHeader": "base/security/access_token/frameworks/tokensync/include/token_sync_service_ipc_interface_code.h",
+    "codeHeaderSha256": "e0106d4bc47bae4af7d0c31c9660cb1c0e2567f1c9908cfa4547846b02e9dd48",
+    "buildProofs": [{
+      "file": "base/security/access_token/services/tokensyncmanager/BUILD.gn",
+      "sha256": "c64aa679b6ae70f7e8b7d1466e4ccd558cdfc0af9909da00e459cd312a357699",
+      "source": "base/security/access_token/services/tokensyncmanager/src/service/token_sync_manager_stub.cpp",
+      "requiredTokens": ["src/service/token_sync_manager_stub.cpp", "ipc:ipc_single",
+        "is_standard_system && token_sync_enable == true", "ATM_BUILD_VARIANT_USER_ENABLE"]
+    }]
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

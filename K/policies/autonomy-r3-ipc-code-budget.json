@@ -1,0 +1,17 @@
+{
+  "policyId": "autonomy-r3-ipc-code-budget",
+  "version": "1.0.0",
+  "description": "R3 IPC switch-code dispatch offline run; no model requests.",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 250,
+    "maxInputTokens": 200000,
+    "maxOutputTokens": 40000,
+    "maxWallSeconds": 1200,
+    "maxTasks": 12,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "authority": "builder-llm-review",
+  "origin": "builder-llm",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "reviewer": "builder-llm-2026-10-25-blind",
+  "reviewedAt": "2026-10-25T05:00:00Z",
+  "decision": "accepted",
+  "normId": "NORM:2a109fbd1f6fb58d",
+  "proposalVersion": "sha256:4a06438d2b2da47b2735ad464b6cf93a32018e24695e5af4b19ec4e1114e8f59",
+  "snapshotId": "sha256:13f40945a59d89f3635c164ffe472367d36ab248d5e068245641a2c90e0e052e",
+  "appliesTo": ["SetPolicy", "SetPolicyAsync"],
+  "applicabilityRationale": {
+    "SetPolicy": "受控盲测语料：README_zh.md 的 SetPolicy 声明 + sandbox_manager_const.h 的 SET_POLICY_PERMISSION_NAME；只用于盲测。",
+    "SetPolicyAsync": "受控盲测语料不包含 SetPolicyAsync 入口；保留与 pilot 来源一致的适用于已审核方法集合，不因此在盲测中产生入口。"
+  },
+  "rationale": "Builder-LLM 为受控盲测语料接受与 pilot 来源一致的 SetPolicy 适用范围；来源带 sourceSalt，仅绑定盲测快照，不外推真实组件结论。"
+}

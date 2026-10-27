@@ -1,0 +1,50 @@
+{
+  "policyId": "autonomy-r3-tokensync-verdict-scope",
+  "version": "1.0.0",
+  "scopeId": "r3-tokensync-delete-code-verdict",
+  "snapshotId": "sha256:eedbad92272908c63ab64dc1396d3709647dba00f3cb16dadeefb7b59fecbd80",
+  "staticSuite": true,
+  "roots": [{ "root": "base/security/access_token", "part": "security" }],
+  "entrySources": [{ "kind": "on-remote-request", "enabled": true },
+    { "kind": "ipc-code", "enabled": true }],
+  "entryFilter": { "entryKinds": ["ipc-code"], "methods": ["DeleteRemoteHapTokenInfoInner"],
+    "exactOnRemoteRequest": true },
+  "ipcDispatch": {
+    "shape": "tokensync-enum",
+    "codeHeader": "base/security/access_token/frameworks/tokensync/include/token_sync_service_ipc_interface_code.h",
+    "codeHeaderSha256": "e0106d4bc47bae4af7d0c31c9660cb1c0e2567f1c9908cfa4547846b02e9dd48",
+    "buildProofs": [{
+      "file": "base/security/access_token/services/tokensyncmanager/BUILD.gn",
+      "sha256": "c64aa679b6ae70f7e8b7d1466e4ccd558cdfc0af9909da00e459cd312a357699",
+      "source": "base/security/access_token/services/tokensyncmanager/src/service/token_sync_manager_stub.cpp",
+      "requiredTokens": ["src/service/token_sync_manager_stub.cpp", "ipc:ipc_single",
+        "is_standard_system && token_sync_enable == true", "ATM_BUILD_VARIANT_USER_ENABLE"]
+    }]
+  },
+  "ipcCodeVerdict": {
+    "code": "DELETE_REMOTE_HAP_TOKEN_INFO",
+    "codeHeader": "base/security/access_token/frameworks/tokensync/include/token_sync_service_ipc_interface_code.h",
+    "handler": "DeleteRemoteHapTokenInfoInner",
+    "stubFile": "base/security/access_token/services/tokensyncmanager/src/service/token_sync_manager_stub.cpp",
+    "stubHeader": "base/security/access_token/services/tokensyncmanager/include/service/token_sync_manager_stub.h",
+    "serviceFile": "base/security/access_token/services/tokensyncmanager/src/service/token_sync_manager_service.cpp",
+    "serviceHeader": "base/security/access_token/services/tokensyncmanager/include/service/token_sync_manager_service.h",
+    "interfaceHeader": "base/security/access_token/interfaces/innerkits/tokensync/include/i_token_sync_manager.h",
+    "tokenHeader": "base/security/access_token/interfaces/innerkits/accesstoken/include/access_token.h",
+    "profileFile": "base/security/access_token/services/tokensyncmanager/sa_profile/3504.json",
+    "pinned": {
+      "profileBuild": { "file": "base/security/access_token/services/tokensyncmanager/sa_profile/BUILD.gn",
+        "sha256": "957fd94e9a5699ab199e8b65d2db0781f24ff6c4127d56255ca88fe2282628df" },
+      "serviceBuild": { "file": "base/security/access_token/services/tokensyncmanager/BUILD.gn",
+        "sha256": "c64aa679b6ae70f7e8b7d1466e4ccd558cdfc0af9909da00e459cd312a357699" },
+      "ipcSkeleton": { "file": "foundation/communication/ipc/ipc/native/src/core/framework/source/ipc_skeleton.cpp",
+        "sha256": "4a8c00e8901ab59045696e21b2a0c7e7bd7d007127ad2a7b004cea1eb6f5b7b9" },
+      "binderInvoker": { "file": "foundation/communication/ipc/ipc/native/src/core/invoker/source/binder_invoker.cpp",
+        "sha256": "d05264ffee8a57b0759623a5576c95c850910acf0383225585d6bafc74e473f0" }
+    }
+  },
+  "coverageSample": { "fraction": 0, "basis": "file", "role": "production",
+    "extensions": [".cpp"], "deterministicOrder": "sha256(path) asc" },
+  "limits": { "maxIndexFunctions": 9000, "maxIndexCalls": 50000,
+    "maxWindowLines": 80, "maxEvidenceBytes": 262144, "toolTimeoutMs": 30000 }
+}

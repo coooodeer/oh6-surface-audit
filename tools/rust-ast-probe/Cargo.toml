@@ -1,0 +1,14 @@
+[package]
+name = "oh6-rust-ast-probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+syn = { path = "../../../OpenHarmony/third_party/rust/crates/syn", default-features = false, features = ["full", "parsing", "visit"] }
+proc-macro2 = { path = "../../../OpenHarmony/third_party/rust/crates/proc-macro2", features = ["span-locations"] }
+
+[patch.crates-io]
+proc-macro2 = { path = "../../../OpenHarmony/third_party/rust/crates/proc-macro2" }
+unicode-ident = { path = "../../../OpenHarmony/third_party/rust/crates/unicode-ident" }
+
+[workspace]

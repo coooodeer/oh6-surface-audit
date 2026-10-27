@@ -1,0 +1,101 @@
+{
+  "labelsVersion": "security-verdict-mutants-v1",
+  "labelSource": "builder-llm-oracle",
+  "labelAuthority": "builder-llm-oracle",
+  "generatedBy": "builder-llm",
+  "needsHumanTuning": true,
+  "snapshotId": "sha256:2142c229d142bdacc472969fe96d73a36da4554f3775dee4f710b79878997a1e",
+  "sourceType": "controlled-mutant",
+  "labels": [
+    {
+      "file": "gate-permission-weakened.cpp",
+      "sha256": "d9099f9b3ee203cac9c0f59b57be0f572545665acb3ff02313bf5ad75c4adcbc",
+      "familyId": "gate-permission-weakened",
+      "method": "SetPolicy",
+      "expected": "candidate",
+      "expectedSecurityFamily": "gate-permission-weakened",
+      "rationale": "门禁检查 normal 级 FILE_ACCESS_PERSIST 而文档预期 SET_SANDBOX_POLICY：持有前者、缺少后者的主体通过门禁到达操作。预期权限 ACL 使能（provisionEnable=true），等级不排除主体持有可能性，锚点不成立，安全命题上限 candidate。"
+    },
+    {
+      "file": "gate-permission-different-stronger.cpp",
+      "sha256": "907fae8bcda96023bc097911e8cbd0a97f9861c51fc673e9639f37b83bc932fc",
+      "familyId": "gate-permission-different-stronger",
+      "method": "UnSetPolicy",
+      "expected": "excluded",
+      "expectedSecurityFamily": "scoped-gate-rejection",
+      "rationale": "门禁检查 SET_SANDBOX_POLICY（system_core，主体不可获得）：仅持文档所述 FILE_ACCESS_PERSIST 的主体被拒绝，仅就该主体给 scoped excluded；契约差异另行登记。"
+    },
+    {
+      "file": "gate-native-token.cpp",
+      "sha256": "530cb7359ea9beb5b79bee5d4c2a8aa44ca517bca6ba0e4cb7f1ecfae69fc226",
+      "familyId": "gate-native-token",
+      "method": "UnSetPolicy",
+      "expected": "excluded",
+      "expectedSecurityFamily": "scoped-gate-rejection",
+      "rationale": "IsFileManagerCalling 精确 native-token 门禁拒绝非 file_manager_service 主体；身份门不是无授权，也不得断言入口整体安全。"
+    },
+    {
+      "file": "gate-uid.cpp",
+      "sha256": "d62cc9591288ebf361de6bf51feddb8f0dad9ebfc58b15b3973658ab26a515f2",
+      "familyId": "gate-uid",
+      "method": "UnSetPolicy",
+      "expected": "excluded",
+      "expectedSecurityFamily": "scoped-gate-rejection",
+      "rationale": "FOUNDATION_UID 早退拒绝非 foundation 进程主体，仅就该限定主体排除。"
+    },
+    {
+      "file": "gate-non-early-return.cpp",
+      "sha256": "12d19c2c04fa12d3c35002134f31cdefe61ed1c9b3dda1a2bea757dca2ee9386",
+      "familyId": "gate-non-early-return",
+      "method": "SetPolicy",
+      "expected": "candidate",
+      "expectedSecurityFamily": "gate-non-blocking",
+      "rationale": "检查存在但拒绝分支只记日志不早退，缺少 SET_SANDBOX_POLICY 的主体仍到达操作；预期权限 ACL 使能，无合格锚点，上限 candidate。"
+    },
+    {
+      "file": "gate-subject-mismatch.cpp",
+      "sha256": "9c1a653c855aaee44153d4341064102d9f3eb8fa34d2e7e35de99ceb18e1ef5e",
+      "familyId": "gate-subject-mismatch",
+      "method": "SetPolicy",
+      "expected": "candidate",
+      "expectedSecurityFamily": "gate-subject-mismatch",
+      "rationale": "门禁检查目标 tokenId 而非调用方主体，不约束调用方；缺少 SET_SANDBOX_POLICY 的调用方主体到达操作；预期权限 ACL 使能，无合格锚点，上限 candidate。"
+    },
+    {
+      "file": "no-gate-normal-level.cpp",
+      "sha256": "b6b257658115f733665337dbb711f8054d668dd690050dfaeb3314750b65c6bd",
+      "familyId": "no-gate-normal-level",
+      "method": "UnSetPolicy",
+      "expected": "candidate",
+      "expectedSecurityFamily": "no-analyzable-gate",
+      "rationale": "路径上无可识别门禁，但预期权限 FILE_ACCESS_PERSIST 为 normal 级且锚点仅为文档/Builder 假设：安全命题上限 candidate。"
+    },
+    {
+      "file": "no-gate-core-level.cpp",
+      "sha256": "074c30910a49f39a969a4e238946e36bf9dd77578fd61b6f0ab5f78716e83ee7",
+      "familyId": "no-gate-core-level",
+      "method": "SetPolicy",
+      "expected": "candidate",
+      "expectedSecurityFamily": "no-analyzable-gate",
+      "rationale": "路径上无可识别门禁且主体缺少预期权限 SET_SANDBOX_POLICY；该权限 ACL 使能，等级不排除持有，锚点不支撑 finding，上限 candidate（acl-enabled-obtainability-deployment-dependent）。"
+    },
+    {
+      "file": "combined-gate-ambiguous.cpp",
+      "sha256": "9884f69cc0acf6afc5619d20e24d234f6375e2c201332b053236f46739803711",
+      "familyId": "combined-gate-ambiguous",
+      "method": "UnSetPolicy",
+      "expected": "insufficient",
+      "expectedSecurityFamily": "combined-gate-unsupported",
+      "rationale": "组合条件（或）门禁不支持整体语义，保留具名缺口，不得误判为缺门禁或已排除。"
+    },
+    {
+      "file": "compliant-direct-check.cpp",
+      "sha256": "74273a78873e63491c47edb89bbd1e9f4d7cd7607331251426d245fbfa2a4d76",
+      "familyId": "compliant-direct-check",
+      "method": "UnSetPolicy",
+      "expected": "excluded",
+      "expectedSecurityFamily": "scoped-gate-rejection",
+      "rationale": "合规正例：门禁检查与文档一致的 FILE_ACCESS_PERSIST，缺少该权限的主体被拒绝，仅就限定主体排除。"
+    }
+  ]
+}

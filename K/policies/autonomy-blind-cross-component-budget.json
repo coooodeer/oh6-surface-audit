@@ -1,0 +1,17 @@
+{
+  "policyId": "autonomy-blind-cross-component-budget",
+  "version": "1.0.0",
+  "description": "跨组件受控盲测的 off-only 预算：18 个受控入口 + 可能的 operation-target 子视图；maxModelRequests=0。",
+  "budget": {
+    "maxModelRequests": 0,
+    "maxToolCalls": 500,
+    "maxInputTokens": 300000,
+    "maxOutputTokens": 60000,
+    "maxWallSeconds": 1800,
+    "maxTasks": 40,
+    "maxTaskModelRequests": 0,
+    "maxTaskToolCalls": 20,
+    "maxConcurrentTools": 4,
+    "maxConcurrentModels": 1
+  }
+}
